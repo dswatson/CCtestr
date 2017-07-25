@@ -1,0 +1,33 @@
+Package: M3C
+Title: Rigorously test cluster stability
+Version: 0.0.0.9000
+Authors@R: c(
+  person("David", "Watson", email = "d.watson@qmul.ac.uk", 
+  role = c("aut", "cre")),
+  person("Christopher", "John", email = "chris.r.john86@gmail.com",
+  role = c("aut", "cre"))
+)
+Description: M3C provides a hypothesis testing framework for consensus 
+  clustering. Null datasets are generated from an input matrix to create 
+  relevant reference distributions for performance metrics. Real data is then 
+  evaluated relative to these null distributions to evaluate cluster stability 
+  against random noise. By systematically testing each cluster number k against 
+  a well formulated null hypothesis, we can generate test statistics and 
+  p-values for each. 
+Depends: R (>= 3.4.1)
+License: GPL (>= 3)
+Imports: 
+  dplyr
+  foreach
+  ggplot2
+  matrixStats
+  cluster
+  fastcluster
+  vegan
+  wordspace
+Suggests:
+  bioDist
+  bioplotr
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
