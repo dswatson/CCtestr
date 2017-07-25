@@ -7,13 +7,13 @@ Authors@R: c(
   person("Christopher", "John", email = "chris.r.john86@gmail.com",
   role = c("aut", "cre"))
 )
-Description: M3C provides a hypothesis testing framework for consensus 
-  clustering. Null datasets are generated from an input matrix to create 
-  relevant reference distributions for performance metrics. Real data is then 
-  evaluated relative to these null distributions to evaluate cluster stability 
-  against random noise. By systematically testing each cluster number k against 
-  a well formulated null hypothesis, we can generate test statistics and 
-  p-values for each. 
+Description: M3C provides a hypothesis testing framework for cluster validation.
+  Using a modified consensus clustering algorithm, we calculate PAC scores for 
+  data simulated from an input matrix in order to estimate the theoretical null 
+  distribution of each cluster number k's performance metrics. Results for real 
+  data are subsequently evaluated relative to these null distributions. By 
+  systematically testing against well-formulated null hypotheses, we generate 
+  test statistics and p-values with high accuracy and known precision. 
 Depends: R (>= 3.4.1)
 License: GPL (>= 3)
 Imports: 
