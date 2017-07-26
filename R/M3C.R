@@ -263,9 +263,9 @@ M3C <- function(dat,
     }
     # Execute in parallel?
     if (parallel) {
-      sim_mat <- foreach(i = seq_len(B), .combine = rbind) %dopar% ref_pacs(mat, i)
+      null_pacs <- foreach(i = seq_len(B), .combine = rbind) %dopar% ref_pacs(mat, i)
     } else {
-      sim_mat <- t(sapply(seq_len(B), function(i) ref_pacs(mat, i)))
+      null_pacs <- t(sapply(seq_len(B), function(i) ref_pacs(mat, i)))
     }
     message('Finished simulating null distributions.')
   }
@@ -291,8 +291,8 @@ M3C <- function(dat,
     # Results table
     res <- pac %>%
       rename(PAC_observed = PAC) %>%
-      mutate(PAC_expected = colMeans2(sim_mat),
-             PAC_sim_sd = colSds(sim_mat)) %>%
+      mutate(PAC_expected = colMeans2(null_pacs),
+             PAC_sim_sd = colSds(null_pacs)) %>%
       mutate(z = (PAC_expected - PAC_observed) / PAC_sim_sd) %>%  # This is really a negative z-score
       mutate(p.value = pnorm(-z), # Include some normality test to optionally use beta distro?
              SE = PAC_sim_sd * sqrt(1L + 1L/B))
@@ -313,10 +313,10 @@ M3C <- function(dat,
 
     # Plot
     if (plot != FALSE) {
-      p <- ggplot(res, aes(k, NegZ)) +
+      p <- ggplot(res, aes(k, z)) +
         geom_point(aes(color = Significant), size = 3) +
         geom_line() +
-        geom_errorbar(aes(ymin = NegZ - Error, ymax = NegZ + Error), width = 0.25) +
+        geom_errorbar(aes(ymin = z - Error, ymax = z + Error), width = 0.25) +
         geom_hline(yintercept = thresh, linetype = 'dashed') +
         scale_x_continuous(breaks = seq(0, maxK, 1)) +
         scale_color_manual(name = expression(italic(p)*'-value'),
@@ -324,7 +324,8 @@ M3C <- function(dat,
                            values = c('black', 'red')) +
         guides(color = guide_legend(reverse = TRUE)) +
         labs(x = expression('Cluster Number'~italic(k)),
-             y = 'Negative Z', title = 'Cluster Stability') +
+             y = expression(~-italic(z)*'-statistic'), 
+             title = 'Cluster Stability') +
         theme_bw() +
         theme(plot.title = element_text(hjust = 0.5))
       if (plot) {
