@@ -258,8 +258,8 @@ M3C <- function(dat,
                       weightsItem = weightsItem, weightsFeature = weightsFeature,
                       seed = seed, parallel = FALSE)
       # Calculate PAC
-      pacs <- PAC(cm, pacWindow)$PAC
-      return(pacs)
+      null_pacs <- PAC(cm, pacWindow)$PAC
+      return(null_pacs)
     }
     # Execute in parallel?
     if (parallel) {
