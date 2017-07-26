@@ -66,7 +66,7 @@ PAC <- function(consensus_mats,
       mutate(k = as.integer(k))
   )
   if (plot) {
-    ggplot(pac, aes(k, PAC)) +
+    ggplot(pacs, aes(k, PAC)) +
       geom_point(size = 3) +
       geom_line() +
       scale_x_continuous(breaks = seq(0, length(consensus_mats), 1)) +
@@ -75,6 +75,6 @@ PAC <- function(consensus_mats,
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5))
   }
-  return(pac)
+  return(pacs)
 
 }
