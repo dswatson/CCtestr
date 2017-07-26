@@ -44,6 +44,7 @@
 #' pac <- PAC(cc, plot = TRUE)
 #'
 #' @export
+#' @importFrom purrr keep
 #' @import dplyr
 #' @import ggplot2
 #'
