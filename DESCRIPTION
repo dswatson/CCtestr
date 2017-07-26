@@ -4,16 +4,16 @@ Version: 0.0.0.9000
 Authors@R: c(
   person("David", "Watson", email = "d.watson@qmul.ac.uk", 
   role = c("aut", "cre")),
-  person("Christopher", "John", email = "chris.r.john86@gmail.com",
+  person("Christopher", "John", email = "christopher.john@qmul.ac.uk",
   role = c("aut", "cre"))
 )
 Description: M3C provides a hypothesis testing framework for cluster validation.
-  Using a modified consensus clustering algorithm, we calculate PAC scores for 
+  Using a modified consensus clustering algorithm, PAC scores are calculated for 
   data simulated from an input matrix in order to estimate the theoretical null 
   distribution of each cluster number k's performance metrics. Results for real 
-  data are subsequently evaluated relative to these null distributions. By 
-  systematically testing against well-formulated null hypotheses, we generate 
-  test statistics and p-values with high accuracy and known precision. 
+  data are subsequently evaluated relative to these distributions. By 
+  systematically testing against well-formulated null hypotheses, test
+  statistics and p-values are computed with high accuracy and known precision. 
 Depends: R (>= 3.4.1)
 License: GPL (>= 3)
 Imports: 
