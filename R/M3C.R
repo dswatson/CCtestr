@@ -328,7 +328,7 @@ M3C <- function(dat,
              title = 'Cluster Stability') +
         theme_bw() +
         theme(plot.title = element_text(hjust = 0.5))
-      if (plot) {
+      if (plot == TRUE) {
         print(p)
       } else {
         ggsave(plot, p)
