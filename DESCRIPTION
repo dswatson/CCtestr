@@ -1,10 +1,12 @@
 Package: M3C
 Title: Rigorously test cluster stability
 Version: 0.0.0.9000
-Authors@R: c(person("David", "Watson", email = "d.watson@qmul.ac.uk", 
+Authors@R: c(
+  person("David", "Watson", email = "d.watson@qmul.ac.uk", 
   role = c("aut", "cre")),
   person("Christopher", "John", email = "christopher.john@qmul.ac.uk",
-  role = c("aut", "cre")))
+  role = c("aut"))
+  )
 Description: M3C provides a hypothesis testing framework for cluster validation.
   Using a modified consensus clustering algorithm, PAC scores are calculated for 
   data simulated from an input matrix in order to estimate the theoretical null 
@@ -15,16 +17,16 @@ Description: M3C provides a hypothesis testing framework for cluster validation.
 Depends: R (>= 3.4.1)
 License: GPL (>= 3)
 Imports: 
-  dplyr
-  foreach
-  ggplot2
-  matrixStats
-  cluster
-  fastcluster
-  vegan
+  dplyr,
+  foreach,
+  ggplot2,
+  matrixStats,
+  cluster,
+  fastcluster,
+  vegan,
   wordspace
 Suggests:
-  bioDist
+  bioDist,
   bioplotr
 Encoding: UTF-8
 LazyData: true
