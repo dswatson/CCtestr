@@ -3,7 +3,6 @@
 export(M3C)
 export(PAC)
 export(consensus)
-export(dist_mat)
 import(dplyr)
 import(foreach)
 import(ggplot2)
