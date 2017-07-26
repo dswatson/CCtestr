@@ -199,7 +199,7 @@ M3C <- function(dat,
       stop('All values in weightsFeature must be on [0, 1].')
     }
   }
-  if (length(pacWindow != 2)) {
+  if (length(pacWindow) != 2) {
     stop('pacWindow must be a vector of length 2.')
   }
   if (min(pacWindow) <= 0 | max(pacWindow) >= 1) {
