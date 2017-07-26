@@ -336,9 +336,9 @@ M3C <- function(dat,
     }
     res_out <- res %>% select(k, PAC_observed, PAC_expected, z)
     if (is.null(CI)) {
-      res_out <- res_out %>% mutate(CI = res$CI)
+      res_out <- res_out %>% mutate(SE = res$SE) 
     } else {
-      res_out <- res_out %>% mutate(SE = res$SE)
+      res_out <- res_out %>% mutate(CI = res$CI)
     }
     if (is.null(p.adj)) {
       res_out <- res_out %>% mutate(p.value = res$p.value)
