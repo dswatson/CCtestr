@@ -44,7 +44,6 @@
 #' @importFrom vegan vegdist
 #'
 
-
 dist_mat <- function(dat, dist) {
 
   if (dist %in% c('euclidean', 'maximum', 'manhattan',
