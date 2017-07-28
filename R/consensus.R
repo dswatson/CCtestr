@@ -14,8 +14,6 @@
 #'   \emph{k}-medoids (\code{"pam"}).
 #' @param innerLinkage Method to use if \code{clusterAlg = "hclust"}. See \code{
 #'   \link[stats]{hclust}}.
-#' @param finalLinkage Method to use for clustering on consensus matrix output.
-#'   Same options as for \code{innerLinkage}.
 #' @param pItem Proportion of items to include in each subsample.
 #' @param pFeature Proportion of features to include in each subsample.
 #' @param weightsItem Optional vector of item weights.
@@ -55,7 +53,8 @@
 #' @export
 #' @importFrom fastcluster hclust
 #' @importFrom cluster pam
-#' @import foreach
+#' @importFrom pbapply parLapply
+#' @import parallel
 #'
 
 consensus <- function(dat,
@@ -69,15 +68,17 @@ consensus <- function(dat,
                       weightsItem = NULL,
                       weightsFeature = NULL,
                       seed = NULL,
-                      parallel = TRUE) {
+                      cores = 1) {
 
   n <- ncol(dat)
   p <- nrow(dat)
   sample_n <- round(n * pItem)
   if (pFeature == 1L & clusterAlg != 'kmeans') {
     dm <- as.matrix(dist_mat(dat, distance))
+  } else {
+    dm <- NULL
   }
-  if (parallel) {
+  if (cores > 1) {
     calc <- function(k) {
       if (k == 1L) {
         return(NULL)
@@ -124,7 +125,18 @@ consensus <- function(dat,
       }
     }
     # Export
-    consensus_mats <- foreach(k = seq_len(maxK)) %dopar% calc(k)
+    cl <- makeCluster(cores)
+    clusterEvalQ(cl, {
+      require(M3C)
+      require(fastcluser)
+      require(cluster)
+    })
+    args <- c('n', 'p', 'sample_n', 'dm', 'dat', 'maxK', 'reps', 
+              'distance', 'clusterAlg', 'innerLinkage', 'pItem', 'pFeature', 
+              'weightsItem', 'weightsFeature', 'seed')
+    clusterExport(cl, args, envir = environment())
+    consensus_mats <- parLapply(cl, seq_len(maxK), calc)
+    stopCluster(cl)
     return(consensus_mats)
   } else {
     count_mat <- matrix(0L, nrow = n, ncol = n)
@@ -150,7 +162,7 @@ consensus <- function(dat,
         }
       }
       for (k in 2:maxK) {
-        if (i == 1) {
+        if (i == 1L) {
           clust_mats[[k]] <- matrix(0L, nrow = n, ncol = n)
         }
         if (clusterAlg == 'kmeans') {
