@@ -4,13 +4,12 @@
 \alias{M3C}
 \title{Monte Carlo Consensus Clustering}
 \usage{
-M3C(dat, maxK = 10, montecarlo = TRUE, B = 100,
-  refMethod = "reverse-pca", reps = 100, distance = "euclidean",
-  clusterAlg = "hclust", innerLinkage = "average",
-  finalLinkage = "average", pItem = 0.8, pFeature = 1,
-  weightsItem = NULL, weightsFeature = NULL, pacWindow = c(0.1, 0.9),
-  alpha = 0.05, p.adj = NULL, CI = NULL, plot = FALSE, seed = NULL,
-  parallel = TRUE)
+M3C(dat, maxK = 3, montecarlo = TRUE, refMethod = "reverse-pca",
+  B = 100, reps = 100, distance = "euclidean", clusterAlg = "hclust",
+  innerLinkage = "average", finalLinkage = "average", pItem = 0.8,
+  pFeature = 1, weightsItem = NULL, weightsFeature = NULL,
+  pacWindow = c(0.1, 0.9), alpha = 0.05, p.adj = NULL, CI = NULL,
+  plot = FALSE, seed = NULL, cores = 1)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
@@ -22,10 +21,10 @@ normalized prior to analysis.}
 \code{FALSE}, function implements the traditional consensus cluster
 algorithm.}
 
-\item{B}{Number of null datasets to generate.}
-
 \item{refMethod}{How should null data be generated? Options include \code{
 reverse-pca}, \code{cholesky}, \code{range}, and \code{permute}.}
+
+\item{B}{Number of null datasets to generate.}
 
 \item{reps}{Number of subsamples to draw for consensus clustering.}
 
@@ -67,8 +66,9 @@ graphics device, or a directory to which the plot should be exported.}
 
 \item{seed}{Optional seed for reproducibility.}
 
-\item{parallel}{Run algorithm in parallel? Highly advisable if hardware
-permits.}
+\item{cores}{How many cores should algorithm use? Generally advisable to use
+as many as possible, especially with large datasets. Setting this argument
+to \code{1} means function will execute in serial.}
 }
 \value{
 A list with \code{maxK} elements. If \code{montecarlo = TRUE}, then
