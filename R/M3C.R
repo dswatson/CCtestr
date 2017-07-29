@@ -105,7 +105,7 @@
 #' @export
 #' @importFrom fastcluster hclust
 #' @importFrom Matrix nearPD
-#' @import matrixStats
+#' @importFrom matrixStats colMeans2 colSds
 #' @import dplyr
 #'
 
