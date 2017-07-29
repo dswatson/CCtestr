@@ -4,10 +4,10 @@
 \alias{consensus}
 \title{Consensus Cluster Algorithm}
 \usage{
-consensus(dat, maxK, reps = 100, distance = "euclidean",
+consensus(dat, maxK = 3, reps = 100, distance = "euclidean",
   clusterAlg = "hclust", innerLinkage = "average", pItem = 0.8,
   pFeature = 1, weightsItem = NULL, weightsFeature = NULL, seed = NULL,
-  parallel = TRUE)
+  cores = 1)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
@@ -40,9 +40,6 @@ hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 
 \item{parallel}{Run algorithm in parallel? Highly advisable if hardware
 permits.}
-
-\item{finalLinkage}{Method to use for clustering on consensus matrix output.
-Same options as for \code{innerLinkage}.}
 }
 \value{
 A list with \code{maxK} elements, the first of which is \code{NULL}.
