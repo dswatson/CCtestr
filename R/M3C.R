@@ -265,7 +265,7 @@ M3C <- function(dat,
       mutate(PAC_expected = colMeans2(ref_pacs_mat),
              PAC_sim_sd = colSds(ref_pacs_mat)) %>%
       mutate(z = (PAC_expected - PAC_observed) / PAC_sim_sd) %>%  # This is really a negative z-score
-      mutate(p.value = pnorm(-z), # Include some normality test to optionally use beta distro?
+      mutate(p.value = pnorm(-z), 
              SE = PAC_sim_sd * sqrt(1L + 1L/B))
     if (is.null(p.adj)) {
       res <- res %>% mutate(Significant = p.value <= alpha)
@@ -292,18 +292,28 @@ M3C <- function(dat,
           n_sig <- sum(res$Significant)
           thresh <- -qnorm(alpha / (cm * lk / n_sig))
         }
-      } else if (p.adj %in% c('holm', 'hochberg')) {  # Not the same method, but close;
-        if (sum(res$Significant) <= 1L) {             # the two are identical for our purposes here
+      } else if (p.adj %in% c('holm', 'hochberg')) { 
+        if (sum(res$Significant) <= 1L) {             
           thresh <- -qnorm(alpha / lk)
         } else {
           n_sig <- sum(res$Significant)
           thresh <- -qnorm(alpha / (lk + 1L - n_sig))
         }
       } else if (p.adj == 'hommel') {
-        n_sig <- sum(res$Significant)
-        # find the largest j such that p[n - j + k] > alpha * k/j,
-        # with k < j and p in ascending order
-        # then thresh <- -qnorm(alpha / j)
+        p <- sort(res$p.value)
+        m <- matrix(ncol = lk, nrow = lk)
+        for (j in seq_len(lk)) {
+          for (k in seq_len(j)) {
+            m[j, k] <- p[lk - j + k] > alpha * k/j
+          }
+        }
+        if (sum(m, na.rm = TRUE) == 0L) {
+          thresh <- -qnorm(alpha / lk)
+        } else {
+          j <- sapply(seq_len(lk), function(j) sum(m[j, ], na.rm = TRUE) == j)
+          j <- max(which(j))
+          thresh <- -qnorm(alpha / j)
+        }
       }
     }
     if (is.null(CI)) {
