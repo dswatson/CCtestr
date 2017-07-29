@@ -38,8 +38,9 @@ hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 
 \item{seed}{Optional seed for reproducibility.}
 
-\item{parallel}{Run algorithm in parallel? Highly advisable if hardware
-permits.}
+\item{cores}{How many cores should algorithm use? Generally advisable to use
+as many as possible, especially with large datasets. Setting this argument
+to \code{1} means function will execute in serial.}
 }
 \value{
 A list with \code{maxK} elements, the first of which is \code{NULL}.

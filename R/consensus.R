@@ -19,8 +19,9 @@
 #' @param weightsItem Optional vector of item weights.
 #' @param weightsFeature Optional vector of feature weights.
 #' @param seed Optional seed for reproducibility.
-#' @param parallel Run algorithm in parallel? Highly advisable if hardware
-#'   permits.
+#' @param cores How many cores should algorithm use? Generally advisable to use
+#'   as many as possible, especially with large datasets. Setting this argument
+#'   to \code{1} means function will execute in serial. 
 #'
 #' @details
 #' Consensus clustering is a resampling procedure to evaluate cluster stability.
