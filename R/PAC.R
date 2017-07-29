@@ -4,9 +4,9 @@
 #' each value of \emph{k} tested via consensus clustering.
 #'
 #' @param consensus_mats A list of consensus matrices, as created by a call to
-#'   \code{\link{consensus}} or \code{\link[ConsensusClusterPlus]{
-#'   ConsensusClusterPlus}}.
-#' @param window Lower and upper bounds for the consensus index sub-interval
+#'   \code{\link{consensus}}, \code{\link{M3C}}, or \code{
+#'   \link[ConsensusClusterPlus]{ConsensusClusterPlus}}.
+#' @param pacWindow Lower and upper bounds for the consensus index sub-interval
 #'   over which to calculate the PAC. Must be on (0, 1).
 #' @param plot Return plot of PAC scores by \emph{k}?
 #'
@@ -38,9 +38,9 @@
 #' consensus clustering in class discovery}. \emph{Scientific Reports}, \emph{
 #' 4}:6207.
 #'
-#' @examples
+#' @example
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-#' cc <- consensus(mat, maxK = 4)
+#' cc <- consensus(mat)
 #' pac <- PAC(cc, plot = TRUE)
 #'
 #' @export
@@ -50,12 +50,34 @@
 #'
 
 PAC <- function(consensus_mats,
-                window,
+                pacWindow,
                 plot = FALSE) {
 
+  # Preliminaries
+  maxK <- length(consensus_mats)
+  if (!is.list(consensus_mats)) {
+    stop('consensus_mats must be a list object containing consensus matrices.')
+  }
+  if (any(names(consensus_mats) == 'consensusMatrix')) {
+    consensus_mats <- lapply(seq_len(maxK), function(k) {
+      if (k == 1L) {
+        return(NULL)
+      } else {
+        return(consensus_mats[[k]]$consensusMatrix)
+      }
+    })
+  }
+  if (length(pacWindow) != 2) {
+    stop('pacWindow must be a vector of length 2.')
+  }
+  if (min(pacWindow) <= 0 || max(pacWindow) >= 1) {
+    stop('Both values of pacWindow must be on (0, 1).')
+  }
+  
+  # Calculate PAC
   suppressWarnings(
-    pacs <- expand.grid(k = 2:length(consensus_mats),
-                        Idx = window) %>%
+    pacs <- expand.grid(k = 2:maxK,
+                        Idx = pacWindow) %>%
       rowwise(.) %>%
       mutate(CDF = ecdf(consensus_mats[[k]] %>% keep(lower.tri(.)))(Idx),
              k = as.factor(k)) %>%
@@ -65,6 +87,8 @@ PAC <- function(consensus_mats,
       ungroup(.) %>%
       mutate(k = as.integer(k))
   )
+  
+  # Plot output
   if (plot) {
     ggplot(pacs, aes(k, PAC)) +
       geom_point(size = 3) +
@@ -75,6 +99,8 @@ PAC <- function(consensus_mats,
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5))
   }
+  
+  # Export
   return(pacs)
 
 }
