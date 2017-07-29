@@ -8,9 +8,9 @@
 #' @param montecarlo Generate null distribution for statistical comparison? If
 #'   \code{FALSE}, function implements the traditional consensus cluster
 #'   algorithm.
-#' @param B Number of null datasets to generate.
 #' @param refMethod How should null data be generated? Options include \code{
 #'   reverse-pca}, \code{cholesky}, \code{range}, and \code{permute}.
+#' @param B Number of null datasets to generate.
 #' @param reps Number of subsamples to draw for consensus clustering.
 #' @param distance Distance metric for clustering. Supports all methods
 #'   available in \code{\link[stats]{dist}} and \code{\link[vegan]{vegdist}},
@@ -36,8 +36,9 @@
 #' @param plot Either a Boolean indicating whether to plot results in the
 #'   graphics device, or a directory to which the plot should be exported.
 #' @param seed Optional seed for reproducibility.
-#' @param parallel Run algorithm in parallel? Highly advisable if hardware
-#'   permits.
+#' @param cores How many cores should algorithm use? Generally advisable to use
+#'   as many as possible, especially with large datasets. Setting this argument
+#'   to \code{1} means function will execute in serial. 
 #'
 #' @details
 #' M3C is a hypothesis testing framework for consensus clustering. It takes an
@@ -108,17 +109,17 @@
 #'
 #' @export
 #' @importFrom fastcluster hclust
-#' @import foreach
+#' @importFrom Matrix nearPD
 #' @import matrixStats
 #' @import dplyr
 #' @import ggplot2
 #'
 
 M3C <- function(dat,
-                maxK = 10,
+                maxK = 3,
                 montecarlo = TRUE,
-                B = 100,
                 refMethod = 'reverse-pca',
+                B = 100,
                 reps = 100,
                 distance = 'euclidean',
                 clusterAlg = 'hclust',
@@ -134,7 +135,7 @@ M3C <- function(dat,
                 CI = NULL,
                 plot = FALSE,
                 seed = NULL,
-                parallel = TRUE) {
+                cores = 1) {
 
 
   ### PRELIMINARIES ###
@@ -217,56 +218,26 @@ M3C <- function(dat,
   }
 
 
-  ### PART I: SIMULATE REFERENCE PAC SCORES ###
+  ### PART I: GENERATE REFERENCE PAC SCORES ###
 
   if (montecarlo) {
     message('Simulating null distributions...')
     if (refMethod == 'reverse-pca') {
       pca <- prcomp(t(mat))
-    } else if (refMethod == 'cholesky') {
-      cov_mat <- as.matrix(nearPD(cov(t(mat)))$mat)
-    }
-    ref_pacs <- function(dat, i) {
-
-      # Set seed
-      if (!is.null(seed)) {
-        seed <- seed + i
-      }
-      # Generate null data
-      if (refMethod == 'reverse-pca') {
-        sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = colSds(pca$x)),
-                          nrow = n, ncol = n, byrow = TRUE)
-        null_dat <- t(sim_dat %*% t(pca$rotation)) + pca$center
-      } else if (refMethod == 'cholesky') {
-        cd <- chol(cov_mat)
-        sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
-        null_dat <- t(sim_dat %*% cd)
-      } else if (refMethod == 'range') {
-        mins <- apply(dat, 1, min)
-        maxs <- apply(dat, 1, max)
-        null_dat <- matrix(runif(n * p, mins, maxs), nrow = p, ncol = n)
-      } else if (refMethod == 'permute') {
-        null_dat <- matrix(nrow = p, ncol = n)
-        for (probe in seq_len(p)) {
-          null_dat[probe, ] <- mat[probe, sample.int(n)]
-        }
-      }
-      # Generate consensus matrices
-      cm <- consensus(null_dat, maxK = maxK, reps = reps, distance = distance,
-                      clusterAlg = clusterAlg, innerLinkage = innerLinkage,
-                      pItem = pItem, pFeature = pFeature,
-                      weightsItem = weightsItem, weightsFeature = weightsFeature,
-                      seed = seed, parallel = FALSE)
-      # Calculate PAC
-      null_pacs <- PAC(cm, pacWindow)$PAC
-      return(null_pacs)
-    }
-    # Execute in parallel?
-    if (parallel) {
-      null_pacs <- foreach(i = seq_len(B), .combine = rbind) %dopar% ref_pacs(mat, i)
     } else {
-      null_pacs <- t(sapply(seq_len(B), function(i) ref_pacs(mat, i)))
+      pca <- NULL
     }
+    if (refMethod == 'cholesky') {
+      cd <- chol(as.matrix(nearPD(cov(t(mat)))$mat))
+    } else {
+      cd <- NULL
+    }
+    ref_pacs_mat <- ref_pacs(mat, maxK = maxK, pca = pca, cd = cd, 
+                             refMethod = refMethod, B = B, reps = reps, 
+                             distance = distance, clusterAlg = clusterAlg, innerLinkage = innerLinkage,
+                             pItem = pItem, pFeature = pFeature, 
+                             weightsItem = weightsItem, weightsFeature = weightsFeature, 
+                             pacWindow = pacWindow, seed = seed, cores = cores)
     message('Finished simulating null distributions.')
   }
 
@@ -279,7 +250,7 @@ M3C <- function(dat,
                   clusterAlg = clusterAlg, innerLinkage = innerLinkage,
                   pItem = pItem, pFeature = pFeature,
                   weightsItem = weightsItem, weightsFeature = weightsFeature,
-                  seed = seed, parallel = parallel)
+                  seed = seed, cores = cores)
   pac <- PAC(cm, pacWindow)
   message('Finished consensus clustering real data.')
 
@@ -291,8 +262,8 @@ M3C <- function(dat,
     # Results table
     res <- pac %>%
       rename(PAC_observed = PAC) %>%
-      mutate(PAC_expected = colMeans2(null_pacs),
-             PAC_sim_sd = colSds(null_pacs)) %>%
+      mutate(PAC_expected = colMeans2(ref_pacs_mat),
+             PAC_sim_sd = colSds(ref_pacs_mat)) %>%
       mutate(z = (PAC_expected - PAC_observed) / PAC_sim_sd) %>%  # This is really a negative z-score
       mutate(p.value = pnorm(-z), # Include some normality test to optionally use beta distro?
              SE = PAC_sim_sd * sqrt(1L + 1L/B))
@@ -303,7 +274,37 @@ M3C <- function(dat,
       res <- res %>%
         mutate(adj.p = p.adjust(p.value, method = p.adj)) %>%
         mutate(Significant = adj.p <= alpha)
-      # thresh <-
+      lk <- maxK - 1L
+      if (p.adj == 'bonferroni') {
+        thresh <- -qnorm(alpha / lk)
+      } else if (p.adj %in% c('BH', 'fdr')) {
+        if (sum(res$Significant) <= 1L) {
+          thresh <- -qnorm(alpha / lk)
+        } else {
+          n_sig <- sum(res$Significant)
+          thresh <- -qnorm(alpha / (lk / n_sig))
+        }
+      } else if (p.adj == 'BY') {
+        cm <- sum(1L / seq_len(lk))
+        if (sum(res$Significant) <= 1L) {
+          thresh <- -qnorm(alpha / (cm * lk))
+        } else {
+          n_sig <- sum(res$Significant)
+          thresh <- -qnorm(alpha / (cm * lk / n_sig))
+        }
+      } else if (p.adj %in% c('holm', 'hochberg')) {  # Not the same method, but close;
+        if (sum(res$Significant) <= 1L) {             # the two are identical for our purposes here
+          thresh <- -qnorm(alpha / lk)
+        } else {
+          n_sig <- sum(res$Significant)
+          thresh <- -qnorm(alpha / (lk + 1L - n_sig))
+        }
+      } else if (p.adj == 'hommel') {
+        n_sig <- sum(res$Significant)
+        # find the largest j such that p[n - j + k] > alpha * k/j,
+        # with k < j and p in ascending order
+        # then thresh <- -qnorm(alpha / j)
+      }
     }
     if (is.null(CI)) {
       res <- res %>% mutate(Error = SE)
