@@ -53,7 +53,6 @@
 #' @export
 #' @importFrom fastcluster hclust
 #' @importFrom cluster pam
-#' @importFrom pbapply parLapply
 #' @import parallel
 #'
 
