@@ -58,7 +58,7 @@
 #'
 
 consensus <- function(dat,
-                      maxK,
+                      maxK = 3,
                       reps = 100,
                       distance = 'euclidean',
                       clusterAlg = 'hclust',
