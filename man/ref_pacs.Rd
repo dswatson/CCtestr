@@ -16,7 +16,7 @@ normalized prior to analysis.}
 
 \item{maxK}{Maximum cluster number to evaluate.}
 
-\item{pca}{Object of class \code{prcomp} to avoid performing 
+\item{pca}{Object of class \code{prcomp}, to avoid performing 
 eigendecomposition of \code{dat B} times. Only relevant if \code{
 refMethod = "reverse-pca"}.}
 
@@ -79,10 +79,4 @@ Just as reference PAC distributions are the theoretical core of the M3C
 approach to cluster validation, \code{ref_pacs} is the computational core 
 of the \code{M3C} package. This function can take some time to execute, and 
 should ideally be run in parallel, especially with large datasets.
-}
-\examples{
-mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-pca <- prcomp(t(mat))
-rp <- ref_pacs(mat, pca = pca, refMethod = "reverse-pca")
-
 }

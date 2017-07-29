@@ -6,7 +6,7 @@
 #' @param dat Probe by sample omic data matrix. Data should be filtered and
 #'   normalized prior to analysis.
 #' @param maxK Maximum cluster number to evaluate.
-#' @param pca Object of class \code{prcomp} to avoid performing 
+#' @param pca Object of class \code{prcomp}, to avoid performing 
 #'   eigendecomposition of \code{dat B} times. Only relevant if \code{
 #'   refMethod = "reverse-pca"}.
 #' @param cd Matrix representing the Cholesky decomposition of \code{dat}'s
@@ -51,7 +51,7 @@
 #' @return A matrix with \code{B} rows and \code{maxK - 1} columns containing 
 #' null PAC scores for each cluster number \emph{k}.
 #'
-#' @examples
+#' @example
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
 #' pca <- prcomp(t(mat))
 #' rp <- ref_pacs(mat, pca = pca, refMethod = "reverse-pca")
@@ -59,7 +59,9 @@
 #' @export
 #' @importFrom matrixStats colSds
 #' @importFrom pbapply pboptions pbsapply
-#' @import parallel
+#' @importFrom parallel detectCores makeCluster stopCluster
+#' @import doSNOW
+#' 
 
 ref_pacs <- function(dat, 
                      maxK = 3, 
@@ -79,6 +81,67 @@ ref_pacs <- function(dat,
                      seed = NULL,
                      cores = 1) {
   
+  # Preliminaries
+  if (!class(dat) %in% c('data.frame', 'matrix', 'ExpressionSet')) {
+    stop('dat must be an object of class data.frame, matrix, or ExpressionSet.')
+  }
+  if (inherits(dat, 'ExpressionSet')) {
+    dat <- exprs(dat)
+  }
+  dat <- as.matrix(dat)
+  if (maxK > ncol(dat)) {
+    stop('maxK exceeds sample size.')
+  }
+  if (refMethod == 'pca' && is.null(pca)) {
+    stop('pca must be supplied when refMethod = "pca".')
+  } else if (refMethod == 'cholesky' && is.null(cd)) {
+    stop('Cholesky decomposition must be supplied when refMethod = "cholesky".')
+  }
+  if (!refMethod %in% c('reverse-pca', 'cholesky', 'range', 'permute')) {
+    stop('refMethod must be one of "reverse-pca", "cholesky", "range", or ',
+         '"permute".')
+  }
+  if (!innerLinkage %in% c('ward.D', 'ward.D2', 'single', 'complete',
+                           'average', 'mcquitty', 'median', 'centroid')) {
+    stop('innerLinkage must be one of "ward.D", "ward.D2", "single", ',
+         '"complete", "average" "mcquitty" "median" or "centroid". See ?hclust.')
+  }
+  if (pItem > 1 || pItem <= 0) {
+    stop('pItem must be on (0, 1].')
+  }
+  if (pFeature > 1 || pFeature <= 0) {
+    stop('pFeature must be on (0, 1].')
+  }
+  if (!is.null(weightsItem)) {
+    if (length(weightsItem) != n) {
+      stop('weightsItem must a vector of length ncol(dat).')
+    }
+    if (max(weightsItem) > 1 || min(weightsItem) < 0) {
+      stop('All values in weightsItem must be on [0, 1].')
+    }
+  }
+  if (!is.null(weightsFeature)) {
+    if (length(weightsFeature) != p) {
+      stop('weightsItem must a vector of length nrow(dat).')
+    }
+    if (max(weightsFeature) > 1 || min(weightsFeature) < 0) {
+      stop('All values in weightsFeature must be on [0, 1].')
+    }
+  }
+  if (length(pacWindow) != 2) {
+    stop('pacWindow must be a vector of length 2.')
+  }
+  if (min(pacWindow) <= 0 || max(pacWindow) >= 1) {
+    stop('Both values of pacWindow must be on (0, 1).')
+  }
+  cpus <- detectCores()
+  if (cores > cpus) {
+    cores <- cpus
+    warning(cores, ' cores requested, but only ', cpus, ' cores detected. ',
+            'Algorithm will proceed with ', cpus, ' cores.')
+  }
+  
+  # Define pacs_b function
   pacs_b <- function(b, dat, maxK, pca, cd, refMethod, B, reps, distance, 
                      clusterAlg, innerLinkage, pItem, pFeature, weightsItem, 
                      weightsFeature, pacWindow, seed) {
@@ -111,32 +174,32 @@ ref_pacs <- function(dat,
                     clusterAlg = clusterAlg, innerLinkage = innerLinkage,
                     pItem = pItem, pFeature = pFeature,
                     weightsItem = weightsItem, weightsFeature = weightsFeature,
-                    seed = seed, cores = 1)
+                    seed = seed, cores = 1, check = FALSE)
     # Calculate PAC
     pacs <- PAC(cm, pacWindow)$PAC
     return(pacs)
   }
-  pboptions(type = 'txt')
+  
   if (cores > 1) {
+    # Execute in parallel
     cl <- makeCluster(cores)
-    clusterEvalQ(cl, {
-      require(M3C)
-      require(matrixStats)
-    })
-    args <- c('dat', 'maxK', 'pca', 'cd', 'refMethod', 'B', 'reps', 
-              'distance', 'clusterAlg', 'innerLinkage', 'pItem', 'pFeature', 
-              'weightsItem', 'weightsFeature', 'pacWindow', 'seed')
-    clusterExport(cl, args, envir = environment())
-    null_pacs <- t(pbsapply(seq_len(B), function(b) {
+    registerDoSNOW(cl)
+    invisible(capture.output(pb <- txtProgressBar(min = 0, max = B, style = 3)))
+    progress <- function(x) setTxtProgressBar(pb, x)
+    opts <- list('progress' = progress)
+    null_pacs <- foreach(b = seq_len(B), .combine = rbind, .options.snow = opts,
+                         .packages = c('matrixStats', 'M3C')) %dopar%
       pacs_b(b, dat = dat, maxK = maxK, pca = pca, cd = cd, 
              refMethod = refMethod, B = B, reps = reps, distance = distance, 
              clusterAlg = clusterAlg, innerLinkage = innerLinkage, 
              pItem = pItem, pFeature = pFeature, 
              weightsItem = weightsItem, weightsFeature = weightsFeature, 
              pacWindow = pacWindow, seed = seed)
-    }, cl = cl))
+    close(pb)
     stopCluster(cl)
   } else {
+    # Execute in serial
+    pboptions(type = 'txt', char = '=')
     null_pacs <- t(pbsapply(seq_len(B), function(b) {
       pacs_b(b, dat = dat, maxK = maxK, pca = pca, cd = cd, 
              refMethod = refMethod, B = B, reps = reps, distance = distance, 
