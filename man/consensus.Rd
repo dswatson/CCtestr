@@ -7,7 +7,7 @@
 consensus(dat, maxK = 3, reps = 100, distance = "euclidean",
   clusterAlg = "hclust", innerLinkage = "average", pItem = 0.8,
   pFeature = 1, weightsItem = NULL, weightsFeature = NULL, seed = NULL,
-  cores = 1)
+  cores = 1, check = TRUE)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
@@ -41,6 +41,10 @@ hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 \item{cores}{How many cores should algorithm use? Generally advisable to use
 as many as possible, especially with large datasets. Setting this argument
 to \code{1} means function will execute in serial.}
+
+\item{check}{Check for errors in function arguments? This is set to \code{
+FALSE} by internal \code{M3C} functions to cut down on redundant checks, 
+but should generally be \code{TRUE} when used interactively.}
 }
 \value{
 A list with \code{maxK} elements, the first of which is \code{NULL}.
@@ -58,11 +62,6 @@ together. The result is a square, symmetric consensus matrix for each value
 of cluster numbers \emph{k}. Each cell of the matrix \code{mat[i, j]}
 represents the proportion of all runs including samples \code{i} and \code{j}
 in which the two were clustered together.
-}
-\examples{
-mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-cc <- consensus(mat, maxK = 4)
-
 }
 \references{
 Monti, S., Tamayo, P., Mesirov, J., & Golub, T. (2003).

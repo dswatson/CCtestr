@@ -22,6 +22,9 @@
 #' @param cores How many cores should algorithm use? Generally advisable to use
 #'   as many as possible, especially with large datasets. Setting this argument
 #'   to \code{1} means function will execute in serial. 
+#' @param check Check for errors in function arguments? This is set to \code{
+#'   FALSE} by internal \code{M3C} functions to cut down on redundant checks, 
+#'   but should generally be \code{TRUE} when used interactively.
 #'
 #' @details
 #' Consensus clustering is a resampling procedure to evaluate cluster stability.
@@ -43,7 +46,7 @@
 #' of Gene Expression Microarray Data}. \emph{Machine Learning}, \emph{52}:
 #' 91-118.
 #'
-#' @examples
+#' @example
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
 #' cc <- consensus(mat, maxK = 4)
 #'
@@ -54,7 +57,8 @@
 #' @export
 #' @importFrom fastcluster hclust
 #' @importFrom cluster pam
-#' @import parallel
+#' @importFrom parallel detectCores makeCluster stopCluster
+#' @import doSNOW
 #'
 
 consensus <- function(dat,
@@ -68,26 +72,74 @@ consensus <- function(dat,
                       weightsItem = NULL,
                       weightsFeature = NULL,
                       seed = NULL,
-                      cores = 1) {
-
+                      cores = 1,
+                      check = TRUE) {
+  
+  # Preliminaries
+  if (check) {
+    if (!class(dat) %in% c('data.frame', 'matrix', 'ExpressionSet')) {
+      stop('dat must be an object of class data.frame, matrix, or ExpressionSet.')
+    }
+    if (inherits(dat, 'ExpressionSet')) {
+      dat <- exprs(dat)
+    }
+    dat <- as.matrix(dat)
+    if (maxK > n) {
+      stop('maxK exceeds sample size.')
+    }
+    if (!innerLinkage %in% c('ward.D', 'ward.D2', 'single', 'complete',
+                             'average', 'mcquitty', 'median', 'centroid')) {
+      stop('innerLinkage must be one of "ward.D", "ward.D2", "single", ',
+           '"complete", "average" "mcquitty" "median" or "centroid". See ?hclust.')
+    }
+    if (pItem > 1 || pItem <= 0) {
+      stop('pItem must be on (0, 1].')
+    }
+    if (pFeature > 1 || pFeature <= 0) {
+      stop('pFeature must be on (0, 1].')
+    }
+    if (!is.null(weightsItem)) {
+      if (length(weightsItem) != n) {
+        stop('weightsItem must a vector of length ncol(dat).')
+      }
+      if (max(weightsItem) > 1 || min(weightsItem) < 0) {
+        stop('All values in weightsItem must be on [0, 1].')
+      }
+    }
+    if (!is.null(weightsFeature)) {
+      if (length(weightsFeature) != p) {
+        stop('weightsItem must a vector of length nrow(dat).')
+      }
+      if (max(weightsFeature) > 1 || min(weightsFeature) < 0) {
+        stop('All values in weightsFeature must be on [0, 1].')
+      }
+    }
+    cpus <- detectCores()
+    if (cores > cpus) {
+      cores <- cpus
+      warning(cores, ' cores requested, but only ', cpus, ' cores detected. ',
+              'Algorithm will proceed with ', cpus, ' cores.')
+    }
+  } 
+  
+  # Run
   n <- ncol(dat)
   p <- nrow(dat)
   sample_n <- round(n * pItem)
-  if (pFeature == 1L & clusterAlg != 'kmeans') {
+  if (pFeature == 1L && clusterAlg != 'kmeans') {
     dm <- as.matrix(dist_mat(dat, distance))
-  } else {
-    dm <- NULL
   }
   if (cores > 1) {
+    # Parallel version
     calc <- function(k) {
       if (k == 1L) {
         return(NULL)
       } else {
-        if (!is.null(seed)) {
-          set.seed(seed + k)
-        }
         assignments <- matrix(nrow = reps, ncol = n)
         for (i in seq_len(reps)) {
+          if (!is.null(seed)) {
+            set.seed(seed + i)
+          }
           samples <- sample.int(n, sample_n, prob = weightsItem)
           if (pFeature < 1L) {
             probe_n <- round(p * pFeature)
@@ -106,7 +158,7 @@ consensus <- function(dat,
           if (clusterAlg == 'kmeans') {
             clusters <- kmeans(dat_i, k)$cluster
           } else if (clusterAlg == 'hclust') {
-            clusters <- cutree(hclust(dm_i, method = innerLinkage), k)
+            clusters <- cutree(fastcluster::hclust(dm_i, method = innerLinkage), k)
           } else if (clusterAlg == 'pam') {
             clusters <- pam(dm_i, k, cluster.only = TRUE)
           }
@@ -126,19 +178,12 @@ consensus <- function(dat,
     }
     # Export
     cl <- makeCluster(cores)
-    clusterEvalQ(cl, {
-      require(M3C)
-      require(fastcluser)
-      require(cluster)
-    })
-    args <- c('n', 'p', 'sample_n', 'dm', 'dat', 'maxK', 'reps', 
-              'distance', 'clusterAlg', 'innerLinkage', 'pItem', 'pFeature', 
-              'weightsItem', 'weightsFeature', 'seed')
-    clusterExport(cl, args, envir = environment())
-    consensus_mats <- parLapply(cl, seq_len(maxK), calc)
+    registerDoSNOW(cl)
+    consensus_mats <- foreach(k = seq_len(maxK)) %dopar% calc(k)
     stopCluster(cl)
     return(consensus_mats)
   } else {
+    # Serial version
     count_mat <- matrix(0L, nrow = n, ncol = n)
     clust_mats <- list()
     for (i in seq_len(reps)) {
@@ -168,13 +213,14 @@ consensus <- function(dat,
         if (clusterAlg == 'kmeans') {
           clusters <- kmeans(dat_i, k)$cluster
         } else if (clusterAlg == 'hclust') {
-          clusters <- cutree(hclust(dm_i, method = innerLinkage), k)
+          clusters <- cutree(fastcluster::hclust(dm_i, method = innerLinkage), k)
         } else if (clusterAlg == 'pam') {
           clusters <- pam(dm_i, k, cluster.only = TRUE)
         }
         clust_mats[[k]] <- adjacency(clusters, samples, clust_mats[[k]])
       }
     }
+    # Export
     consensus_mats <- list()
     for (k in 2:maxK) {
       consensus_mats[[k]] <- clust_mats[[k]] / count_mat
