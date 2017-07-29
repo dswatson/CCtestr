@@ -38,7 +38,7 @@
 #' consensus clustering in class discovery}. \emph{Scientific Reports}, \emph{
 #' 4}:6207.
 #'
-#' @example
+#' @examples
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
 #' cc <- consensus(mat)
 #' pac <- PAC(cc, plot = TRUE)

@@ -80,3 +80,9 @@ approach to cluster validation, \code{ref_pacs} is the computational core
 of the \code{M3C} package. This function can take some time to execute, and 
 should ideally be run in parallel, especially with large datasets.
 }
+\examples{
+mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
+pca <- prcomp(t(mat))
+rp <- ref_pacs(mat, pca = pca, refMethod = "reverse-pca")
+
+}

@@ -36,7 +36,7 @@
 #' @return An object of class \code{dist} representing the pairwise distance
 #' between columns of \code{dat}.
 #'
-#' @example
+#' @examples
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
 #' dm <- dist_mat(mat, dist = "euclidean")
 #'

@@ -46,3 +46,8 @@ Samplewise distance is calculated using one of the following methods:
     \link[bioDist]{KLdist.matrix}} functions.
 }
 }
+\examples{
+mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
+dm <- dist_mat(mat, dist = "euclidean")
+
+}

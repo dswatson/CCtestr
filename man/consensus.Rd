@@ -63,6 +63,11 @@ of cluster numbers \emph{k}. Each cell of the matrix \code{mat[i, j]}
 represents the proportion of all runs including samples \code{i} and \code{j}
 in which the two were clustered together.
 }
+\examples{
+mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
+cc <- consensus(mat, maxK = 4)
+
+}
 \references{
 Monti, S., Tamayo, P., Mesirov, J., & Golub, T. (2003).
 \href{http://link.springer.com/article/10.1023/A:1023949509487}{Consensus

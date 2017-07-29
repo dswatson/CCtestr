@@ -46,7 +46,7 @@
 #' of Gene Expression Microarray Data}. \emph{Machine Learning}, \emph{52}:
 #' 91-118.
 #'
-#' @example
+#' @examples
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
 #' cc <- consensus(mat, maxK = 4)
 #'

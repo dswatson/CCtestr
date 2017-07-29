@@ -113,6 +113,11 @@ consensus matrix for a perfectly stable cluster would consist of just 1s and
 0s, the ideal CDF curve is flat in the middle. The goal is therefore to
 minimize the PAC. See Senbabaoglu et al. (2014) for more details.
 }
+\examples{
+mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
+M3Cres <- M3C(mat)
+
+}
 \references{
 Monti, S., Tamayo, P., Mesirov, J., & Golub, T. (2003).
 \href{http://link.springer.com/article/10.1023/A:1023949509487}{Consensus

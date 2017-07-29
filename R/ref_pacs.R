@@ -51,7 +51,7 @@
 #' @return A matrix with \code{B} rows and \code{maxK - 1} columns containing 
 #' null PAC scores for each cluster number \emph{k}.
 #'
-#' @example
+#' @examples
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
 #' pca <- prcomp(t(mat))
 #' rp <- ref_pacs(mat, pca = pca, refMethod = "reverse-pca")
