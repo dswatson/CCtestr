@@ -8,8 +8,7 @@ M3C(dat, maxK = 3, montecarlo = TRUE, refMethod = "reverse-pca",
   B = 100, reps = 100, distance = "euclidean", clusterAlg = "hclust",
   innerLinkage = "average", finalLinkage = "average", pItem = 0.8,
   pFeature = 1, weightsItem = NULL, weightsFeature = NULL,
-  pacWindow = c(0.1, 0.9), alpha = 0.05, p.adj = NULL, CI = NULL,
-  plot = FALSE, seed = NULL, cores = 1)
+  pacWindow = c(0.1, 0.9), p.adj = NULL, seed = NULL, cores = 1)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
@@ -53,16 +52,8 @@ Same options as for \code{innerLinkage}.}
 \item{pacWindow}{Lower and upper bounds for the consensus index sub-interval
 over which to calculate the PAC. Must be on (0, 1).}
 
-\item{alpha}{Significance threshold to apply to \emph{z}-statistics.}
-
 \item{p.adj}{Optional method for \emph{p}-value adjustment. Supports all
 methods available in \code{\link[stats]{p.adjust}}.}
-
-\item{CI}{Optional confidence interval to plot around \emph{z}-statistics.
-Must be on (0, 1).}
-
-\item{plot}{Either a Boolean indicating whether to plot results in the
-graphics device, or a directory to which the plot should be exported.}
 
 \item{seed}{Optional seed for reproducibility.}
 
@@ -121,11 +112,6 @@ the PAC window; and subtract latter number from the former. Since the
 consensus matrix for a perfectly stable cluster would consist of just 1s and
 0s, the ideal CDF curve is flat in the middle. The goal is therefore to
 minimize the PAC. See Senbabaoglu et al. (2014) for more details.
-}
-\examples{
-mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-m3c <- M3C(mat, maxK = 4)
-
 }
 \references{
 Monti, S., Tamayo, P., Mesirov, J., & Golub, T. (2003).
