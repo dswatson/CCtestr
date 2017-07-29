@@ -59,6 +59,7 @@
 #' @importFrom cluster pam
 #' @importFrom parallel detectCores makeCluster stopCluster
 #' @import doSNOW
+#' @import foreach
 #'
 
 consensus <- function(dat,

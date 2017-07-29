@@ -61,6 +61,7 @@
 #' @importFrom pbapply pboptions pbsapply
 #' @importFrom parallel detectCores makeCluster stopCluster
 #' @import doSNOW
+#' @import foreach
 #' 
 
 ref_pacs <- function(dat, 
