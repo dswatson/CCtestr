@@ -28,13 +28,8 @@
 #' @param weightsFeature Optional vector of feature weights.
 #' @param pacWindow Lower and upper bounds for the consensus index sub-interval
 #'   over which to calculate the PAC. Must be on (0, 1).
-#' @param alpha Significance threshold to apply to \emph{z}-statistics.
 #' @param p.adj Optional method for \emph{p}-value adjustment. Supports all
 #'   methods available in \code{\link[stats]{p.adjust}}.
-#' @param CI Optional confidence interval to plot around \emph{z}-statistics.
-#'   Must be on (0, 1).
-#' @param plot Either a Boolean indicating whether to plot results in the
-#'   graphics device, or a directory to which the plot should be exported.
 #' @param seed Optional seed for reproducibility.
 #' @param cores How many cores should algorithm use? Generally advisable to use
 #'   as many as possible, especially with large datasets. Setting this argument
@@ -100,9 +95,9 @@
 #' consensus clustering in class discovery}. \emph{Scientific Reports}, \emph{
 #' 4}:6207.
 #'
-#' @examples
+#' @example
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-#' m3c <- M3C(mat, maxK = 4)
+#' M3Cres <- M3C(mat)
 #'
 #' @seealso
 #' \code{\link[ConsensusClusterPlus]{ConsensusClusterPlus}}
@@ -112,7 +107,6 @@
 #' @importFrom Matrix nearPD
 #' @import matrixStats
 #' @import dplyr
-#' @import ggplot2
 #'
 
 M3C <- function(dat,
@@ -130,84 +124,29 @@ M3C <- function(dat,
                 weightsItem = NULL,
                 weightsFeature = NULL,
                 pacWindow = c(0.1, 0.9),
-                alpha = 0.05,
                 p.adj = NULL,
-                CI = NULL,
-                plot = FALSE,
                 seed = NULL,
                 cores = 1) {
 
 
   ### PRELIMINARIES ###
 
-  # Set seed
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
   message('***M3C: Monte Carlo Consensus Clustering***')
-
-  # Error handling, warnings
-  if (!class(dat) %in% c('data.frame', 'matrix', 'ExpressionSet')) {
-    stop('dat must be an object of class data.frame, matrix, or ExpressionSet.')
-  }
-  if (inherits(dat, 'ExpressionSet')) {
-    dat <- exprs(dat)
-  }
   mat <- as.matrix(dat)
   n <- ncol(mat)
   p <- nrow(mat)
-  if (maxK > ncol(mat)) {
+  if (maxK > n) {
     stop('maxK exceeds sample size.')
   }
-  if (n > p & montecarlo & refMethod != 'cholesky') {
+  if (n > p && montecarlo && refMethod != 'cholesky') {
     warning('Sample size (columns) exceeds feature total (rows). ',
             'Switching to Cholesky decomposition method...')
     refMethod <- 'cholesky'
-  }
-  if (!refMethod %in% c('reverse-pca', 'cholesky', 'range', 'permute')) {
-    stop('refMethod must be one of "reverse-pca", "cholesky", "range", or ',
-         '"permute".')
-  }
-  if (!innerLinkage %in% c('ward.D', 'ward.D2', 'single', 'complete',
-                           'average', 'mcquitty', 'median', 'centroid')) {
-    stop('innerLinkage must be one of "ward.D", "ward.D2", "single", ',
-         '"complete", "average" "mcquitty" "median" or "centroid". See ?hclust.')
   }
   if (!finalLinkage %in% c('ward.D', 'ward.D2', 'single', 'complete',
                            'average', 'mcquitty', 'median', 'centroid')) {
     stop('finalLinkage must be one of "ward.D", "ward.D2", "single", ',
          '"complete", "average" "mcquitty" "median" or "centroid". See ?hclust.')
-  }
-  if (pItem > 1 | pItem <= 0) {
-    stop('pItem must be on (0, 1].')
-  }
-  if (pFeature > 1 | pFeature <= 0) {
-    stop('pFeature must be on (0, 1].')
-  }
-  if (!is.null(weightsItem)) {
-    if (length(weightsItem) != n) {
-      stop('weightsItem must a vector of length ncol(dat).')
-    }
-    if (max(weightsItem) > 1 | min(weightsItem) < 0) {
-      stop('All values in weightsItem must be on [0, 1].')
-    }
-  }
-  if (!is.null(weightsFeature)) {
-    if (length(weightsFeature) != p) {
-      stop('weightsItem must a vector of length nrow(dat).')
-    }
-    if (max(weightsFeature) > 1 | min(weightsFeature) < 0) {
-      stop('All values in weightsFeature must be on [0, 1].')
-    }
-  }
-  if (length(pacWindow) != 2) {
-    stop('pacWindow must be a vector of length 2.')
-  }
-  if (min(pacWindow) <= 0 | max(pacWindow) >= 1) {
-    stop('Both values of pacWindow must be on (0, 1).')
-  }
-  if (alpha <= 0 | alpha >= 1) {
-    stop('alpha must be on (0, 1).')
   }
   if (!is.null(p.adj)) {
     if (!p.adj %in% c('holm', 'hochberg', 'hommel',
@@ -250,7 +189,7 @@ M3C <- function(dat,
                   clusterAlg = clusterAlg, innerLinkage = innerLinkage,
                   pItem = pItem, pFeature = pFeature,
                   weightsItem = weightsItem, weightsFeature = weightsFeature,
-                  seed = seed, cores = cores)
+                  seed = seed, cores = cores, check = TRUE)
   pac <- PAC(cm, pacWindow)
   message('Finished consensus clustering real data.')
 
@@ -265,122 +204,19 @@ M3C <- function(dat,
       mutate(PAC_expected = colMeans2(ref_pacs_mat),
              PAC_sim_sd = colSds(ref_pacs_mat)) %>%
       mutate(z = (PAC_expected - PAC_observed) / PAC_sim_sd) %>%  # This is really a negative z-score
-      mutate(p.value = pnorm(-z), 
-             SE = PAC_sim_sd * sqrt(1L + 1L/B))
-    if (is.null(p.adj)) {
-      res <- res %>% mutate(Significant = p.value <= alpha)
-      thresh <- -qnorm(alpha)
-    } else {
-      res <- res %>%
-        mutate(adj.p = p.adjust(p.value, method = p.adj)) %>%
-        mutate(Significant = adj.p <= alpha)
-      lk <- maxK - 1L
-      if (p.adj == 'bonferroni') {
-        thresh <- -qnorm(alpha / lk)
-      } else if (p.adj %in% c('BH', 'fdr')) {
-        if (sum(res$Significant) <= 1L) {
-          thresh <- -qnorm(alpha / lk)
-        } else {
-          n_sig <- sum(res$Significant)
-          thresh <- -qnorm(alpha / (lk / n_sig))
-        }
-      } else if (p.adj == 'BY') {
-        cm <- sum(1L / seq_len(lk))
-        if (sum(res$Significant) <= 1L) {
-          thresh <- -qnorm(alpha / (cm * lk))
-        } else {
-          n_sig <- sum(res$Significant)
-          thresh <- -qnorm(alpha / (cm * lk / n_sig))
-        }
-      } else if (p.adj %in% c('holm', 'hochberg')) { 
-        if (sum(res$Significant) <= 1L) {             
-          thresh <- -qnorm(alpha / lk)
-        } else {
-          n_sig <- sum(res$Significant)
-          thresh <- -qnorm(alpha / (lk + 1L - n_sig))
-        }
-      } else if (p.adj == 'hommel') {
-        p <- sort(res$p.value)
-        m <- matrix(ncol = lk, nrow = lk)
-        for (j in seq_len(lk)) {
-          for (k in seq_len(j)) {
-            m[j, k] <- p[lk - j + k] > alpha * k/j
-          }
-        }
-        if (sum(m, na.rm = TRUE) == 0L) {
-          thresh <- -qnorm(alpha / lk)
-        } else {
-          j <- sapply(seq_len(lk), function(j) sum(m[j, ], na.rm = TRUE) == j)
-          j <- max(which(j))
-          thresh <- -qnorm(alpha / j)
-        }
-      }
+      mutate(SE = PAC_sim_sd * sqrt(1L + 1L/B),
+             p.value = pnorm(-z))
+    if (!is.null(p.adj)) {
+      res <- res %>% mutate(adj.p = p.adjust(p.value, method = p.adj))
     }
-    if (is.null(CI)) {
-      res <- res %>% mutate(Error = SE)
-    } else {
-      res <- res %>% mutate(Error = SE * qnorm(1 - (1 - CI)/2))
-    }
-
-    # Plot
-    if (plot != FALSE) {
-      p <- ggplot(res, aes(k, z)) +
-        geom_point(aes(color = Significant), size = 3) +
-        geom_line() +
-        geom_errorbar(aes(ymin = z - Error, ymax = z + Error), width = 0.25) +
-        geom_hline(yintercept = thresh, linetype = 'dashed') +
-        scale_x_continuous(breaks = seq(0, maxK, 1)) +
-        scale_color_manual(name = expression(italic(p)*'-value'),
-                           labels = c(paste('>', alpha), paste('\u2264', alpha)),
-                           values = c('black', 'red')) +
-        guides(color = guide_legend(reverse = TRUE)) +
-        labs(x = expression('Cluster Number'~italic(k)),
-             y = expression(~-italic(z)*'-statistic'), 
-             title = 'Cluster Stability') +
-        theme_bw() +
-        theme(plot.title = element_text(hjust = 0.5))
-      if (plot == TRUE) {
-        print(p)
-      } else {
-        ggsave(plot, p)
-      }
-    }
-    res_out <- res %>% select(k, PAC_observed, PAC_expected, z)
-    if (is.null(CI)) {
-      res_out <- res_out %>% mutate(SE = res$SE) 
-    } else {
-      res_out <- res_out %>% mutate(CI = res$CI)
-    }
-    if (is.null(p.adj)) {
-      res_out <- res_out %>% mutate(p.value = res$p.value)
-    } else {
-      res_out <- res_out %>%
-        mutate(p.value = res$p.value,
-               adj.p = res$adj.p)
-    }
-    out[[1]] <- res_out
+    out[[1]] <- res
   } else {
     out[[1]] <- pac
-    if (plot != FALSE) {
-      p <- ggplot(pac, aes(k, PAC)) +
-        geom_point(size = 3) +
-        geom_line() +
-        scale_x_continuous(breaks = seq(0, maxK, 1)) +
-        labs(x = expression('Cluster Number'~italic(k)),
-             y = 'PAC Score', title = expression('PAC by'~italic(k))) +
-        theme_bw() +
-        theme(plot.title = element_text(hjust = 0.5))
-    }
-    if (plot) {
-      print(p)
-    } else {
-      ggsave(plot, p)
-    }
   }
 
   # Export
   for (k in 2:maxK) {
-    hc <- hclust(as.dist(1L - cm[[k]]), method = finalLinkage)
+    hc <- fastcluster::hclust(as.dist(1L - cm[[k]]), method = finalLinkage)
     ct <- cutree(hc, k)
     out[[k]] <- list('consensusMatrix' = cm[[k]],
                      'consensusTree' = hc,
