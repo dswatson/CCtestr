@@ -132,6 +132,12 @@ M3C <- function(dat,
   ### PRELIMINARIES ###
 
   message('***M3C: Monte Carlo Consensus Clustering***')
+  if (!class(dat) %in% c('data.frame', 'matrix', 'ExpressionSet')) {
+    stop('dat must be an object of class data.frame, matrix, or ExpressionSet.')
+  }
+  if (inherits(dat, 'ExpressionSet')) {
+    dat <- exprs(dat)
+  }
   mat <- as.matrix(dat)
   n <- ncol(mat)
   p <- nrow(mat)
