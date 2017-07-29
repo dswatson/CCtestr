@@ -226,7 +226,8 @@ M3C <- function(dat,
     ct <- cutree(hc, k)
     out[[k]] <- list('consensusMatrix' = cm[[k]],
                      'consensusTree' = hc,
-                     'consensusClusters' = ct)
+                     'consensusClusters' = ct,
+                     'refPACs' = ref_pacs_mat[, k])
   }
   names(out) <- c('results', paste0('k=', 2:maxK))
   return(out)
