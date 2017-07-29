@@ -58,7 +58,7 @@
 #'
 #' @export
 #' @importFrom matrixStats colSds
-#' @importFrom pbapply pbsapply
+#' @importFrom pbapply pboptions pbsapply
 #' @import parallel
 
 ref_pacs <- function(dat, 
