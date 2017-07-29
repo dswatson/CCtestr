@@ -152,23 +152,24 @@ ref_pacs <- function(dat,
       seed <- seed + b
     }
     # Generate null data
-    if (refMethod == 'reverse-pca') {
-      sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = colSds(pca$x)),
+    switch(refMethod, 
+           'reverse-pca' = {
+             sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = colSds(pca$x)),
                         nrow = n, ncol = n, byrow = TRUE)
-      null_dat <- t(sim_dat %*% t(pca$rotation)) + pca$center
-    } else if (refMethod == 'cholesky') {
-      sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
-      null_dat <- t(sim_dat %*% cd)
-    } else if (refMethod == 'range') {
-      mins <- apply(dat, 1, min)
-      maxs <- apply(dat, 1, max)
-      null_dat <- matrix(runif(n * p, mins, maxs), nrow = p, ncol = n)
-    } else if (refMethod == 'permute') {
-      null_dat <- matrix(nrow = p, ncol = n)
-      for (probe in seq_len(p)) {
-        null_dat[probe, ] <- mat[probe, sample.int(n)]
-      }
-    }
+             null_dat <- t(sim_dat %*% t(pca$rotation)) + pca$center
+           }, 'cholesky' = {
+             sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
+             null_dat <- t(sim_dat %*% cd)
+           }, 'range' = {
+             mins <- apply(dat, 1, min)
+             maxs <- apply(dat, 1, max)
+             null_dat <- matrix(runif(n * p, mins, maxs), nrow = p, ncol = n)
+           }, 'permute' = {
+             null_dat <- matrix(nrow = p, ncol = n)
+             for (probe in seq_len(p)) {
+               null_dat[probe, ] <- mat[probe, sample.int(n)]
+             }
+           })
     # Generate consensus matrices
     cm <- consensus(null_dat, maxK = maxK, reps = reps, distance = distance,
                     clusterAlg = clusterAlg, innerLinkage = innerLinkage,
