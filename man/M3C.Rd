@@ -8,7 +8,7 @@ M3C(dat, maxK = 3, montecarlo = TRUE, refMethod = "reverse-pca",
   B = 100, reps = 100, distance = "euclidean", clusterAlg = "hclust",
   innerLinkage = "average", finalLinkage = "average", pItem = 0.8,
   pFeature = 1, weightsItem = NULL, weightsFeature = NULL,
-  pacWindow = c(0.1, 0.9), p.adj = NULL, seed = NULL, cores = 1)
+  pacWindow = c(0.1, 0.9), p.adj = NULL, seed = NULL, parallel = TRUE)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
@@ -53,13 +53,12 @@ Same options as for \code{innerLinkage}.}
 over which to calculate the PAC. Must be on (0, 1).}
 
 \item{p.adj}{Optional method for \emph{p}-value adjustment. Supports all
-methods available in \code{\link[stats]{p.adjust}}.}
+options available in \code{\link[stats]{p.adjust}}.}
 
 \item{seed}{Optional seed for reproducibility.}
 
-\item{cores}{How many cores should algorithm use? Generally advisable to use
-as many as possible, especially with large datasets. Setting this argument
-to \code{1} means function will execute in serial.}
+\item{parallel}{If a parallel backend is loaded and available, should the 
+function use it? Highly advisable if hardware permits.}
 }
 \value{
 A list with \code{maxK} elements. If \code{montecarlo = TRUE}, then

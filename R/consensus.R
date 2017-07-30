@@ -19,9 +19,8 @@
 #' @param weightsItem Optional vector of item weights.
 #' @param weightsFeature Optional vector of feature weights.
 #' @param seed Optional seed for reproducibility.
-#' @param cores How many cores should algorithm use? Generally advisable to use
-#'   as many as possible, especially with large datasets. Setting this argument
-#'   to \code{1} means function will execute in serial. 
+#' @param parallel If a parallel backend is loaded and available, should the 
+#'   function use it? Highly advisable if hardware permits. 
 #' @param check Check for errors in function arguments? This is set to \code{
 #'   FALSE} by internal \code{M3C} functions to cut down on redundant checks, 
 #'   but should generally be \code{TRUE} when used interactively.
@@ -57,9 +56,6 @@
 #' @export
 #' @importFrom fastcluster hclust
 #' @importFrom cluster pam
-#' @importFrom parallel detectCores makeCluster stopCluster
-#' @import doSNOW
-#' @import foreach
 #'
 
 consensus <- function(dat,
@@ -73,7 +69,7 @@ consensus <- function(dat,
                       weightsItem = NULL,
                       weightsFeature = NULL,
                       seed = NULL,
-                      cores = 1,
+                      parallel = TRUE,
                       check = TRUE) {
   
   # Preliminaries
@@ -85,7 +81,7 @@ consensus <- function(dat,
       dat <- exprs(dat)
     }
     dat <- as.matrix(dat)
-    if (maxK > n) {
+    if (maxK > ncol(dat)) {
       stop('maxK exceeds sample size.')
     }
     if (!innerLinkage %in% c('ward.D', 'ward.D2', 'single', 'complete',
@@ -115,12 +111,6 @@ consensus <- function(dat,
         stop('All values in weightsFeature must be on [0, 1].')
       }
     }
-    cpus <- detectCores()
-    if (cores > cpus) {
-      cores <- cpus
-      warning(cores, ' cores requested, but only ', cpus, ' cores detected. ',
-              'Algorithm will proceed with ', cpus, ' cores.')
-    }
   } 
   
   # Run
@@ -130,7 +120,7 @@ consensus <- function(dat,
   if (pFeature == 1L && clusterAlg != 'kmeans') {
     dm <- as.matrix(dist_mat(dat, distance))
   }
-  if (cores > 1) {
+  if (parallel) {
     # Parallel version
     calc <- function(k) {
       if (k == 1L) {
@@ -178,10 +168,7 @@ consensus <- function(dat,
       }
     }
     # Export
-    cl <- makeCluster(cores)
-    registerDoSNOW(cl)
     consensus_mats <- foreach(k = seq_len(maxK)) %dopar% calc(k)
-    stopCluster(cl)
     return(consensus_mats)
   } else {
     # Serial version

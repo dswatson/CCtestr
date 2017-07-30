@@ -31,9 +31,8 @@
 #' @param pacWindow Lower and upper bounds for the consensus index sub-interval
 #'   over which to calculate the PAC. Must be on (0, 1).
 #' @param seed Optional seed for reproducibility.
-#' @param cores How many cores should algorithm use? Generally advisable to use
-#'   as many as possible, especially with large datasets. Setting this argument
-#'   to \code{1} means function will execute in serial.
+#' @param parallel If a parallel backend is loaded and available, should the 
+#'   function use it? Highly advisable if hardware permits. 
 #'
 #' @details
 #' Suitable reference PAC scores are essential to test the magnitude and 
@@ -58,10 +57,6 @@
 #'
 #' @export
 #' @importFrom matrixStats colSds
-#' @importFrom pbapply pboptions pbsapply
-#' @importFrom parallel detectCores makeCluster stopCluster
-#' @import doSNOW
-#' @import foreach
 #' 
 
 ref_pacs <- function(dat, 
@@ -80,7 +75,7 @@ ref_pacs <- function(dat,
                      weightsFeature = NULL, 
                      pacWindow = c(0.1, 0.9), 
                      seed = NULL,
-                     cores = 1) {
+                     parallel = TRUE) {
   
   # Preliminaries
   if (!class(dat) %in% c('data.frame', 'matrix', 'ExpressionSet')) {
@@ -135,12 +130,6 @@ ref_pacs <- function(dat,
   if (min(pacWindow) <= 0 || max(pacWindow) >= 1) {
     stop('Both values of pacWindow must be on (0, 1).')
   }
-  cpus <- detectCores()
-  if (cores > cpus) {
-    cores <- cpus
-    warning(cores, ' cores requested, but only ', cpus, ' cores detected. ',
-            'Algorithm will proceed with ', cpus, ' cores.')
-  }
   
   # Define pacs_b function
   pacs_b <- function(b, dat, maxK, pca, cd, refMethod, B, reps, distance, 
@@ -176,33 +165,24 @@ ref_pacs <- function(dat,
                     clusterAlg = clusterAlg, innerLinkage = innerLinkage,
                     pItem = pItem, pFeature = pFeature,
                     weightsItem = weightsItem, weightsFeature = weightsFeature,
-                    seed = seed, cores = 1, check = FALSE)
+                    seed = seed, parallel = parallel, check = FALSE)
     # Calculate PAC
     pacs <- PAC(cm, pacWindow)$PAC
     return(pacs)
   }
   
-  if (cores > 1) {
+  if (parallel) {
     # Execute in parallel
-    cl <- makeCluster(cores)
-    registerDoSNOW(cl)
-    invisible(capture.output(pb <- txtProgressBar(min = 0, max = B, style = 3)))
-    progress <- function(x) setTxtProgressBar(pb, x)
-    opts <- list('progress' = progress)
-    null_pacs <- foreach(b = seq_len(B), .combine = rbind, .options.snow = opts,
-                         .packages = c('matrixStats', 'M3C')) %dopar%
+    null_pacs <- foreach(b = seq_len(B), .combine = rbind) %dopar%
       pacs_b(b, dat = dat, maxK = maxK, pca = pca, cd = cd, 
              refMethod = refMethod, B = B, reps = reps, distance = distance, 
              clusterAlg = clusterAlg, innerLinkage = innerLinkage, 
              pItem = pItem, pFeature = pFeature, 
              weightsItem = weightsItem, weightsFeature = weightsFeature, 
              pacWindow = pacWindow, seed = seed)
-    close(pb)
-    stopCluster(cl)
   } else {
     # Execute in serial
-    pboptions(type = 'txt', char = '=')
-    null_pacs <- t(pbsapply(seq_len(B), function(b) {
+    null_pacs <- t(sapply(seq_len(B), function(b) {
       pacs_b(b, dat = dat, maxK = maxK, pca = pca, cd = cd, 
              refMethod = refMethod, B = B, reps = reps, distance = distance, 
              clusterAlg = clusterAlg, innerLinkage = innerLinkage, 

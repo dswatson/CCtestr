@@ -8,7 +8,7 @@ ref_pacs(dat, maxK = 3, pca = NULL, cd = NULL,
   refMethod = "reverse-pca", B = 100, reps = 100,
   distance = "euclidean", clusterAlg = "hclust", innerLinkage = "average",
   pItem = 0.8, pFeature = 1, weightsItem = NULL, weightsFeature = NULL,
-  pacWindow = c(0.1, 0.9), seed = NULL, cores = 1)
+  pacWindow = c(0.1, 0.9), seed = NULL, parallel = TRUE)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
@@ -55,9 +55,8 @@ over which to calculate the PAC. Must be on (0, 1).}
 
 \item{seed}{Optional seed for reproducibility.}
 
-\item{cores}{How many cores should algorithm use? Generally advisable to use
-as many as possible, especially with large datasets. Setting this argument
-to \code{1} means function will execute in serial.}
+\item{parallel}{If a parallel backend is loaded and available, should the 
+function use it? Highly advisable if hardware permits.}
 }
 \value{
 A matrix with \code{B} rows and \code{maxK - 1} columns containing 

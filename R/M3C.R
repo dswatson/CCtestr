@@ -29,11 +29,10 @@
 #' @param pacWindow Lower and upper bounds for the consensus index sub-interval
 #'   over which to calculate the PAC. Must be on (0, 1).
 #' @param p.adj Optional method for \emph{p}-value adjustment. Supports all
-#'   methods available in \code{\link[stats]{p.adjust}}.
+#'   options available in \code{\link[stats]{p.adjust}}.
 #' @param seed Optional seed for reproducibility.
-#' @param cores How many cores should algorithm use? Generally advisable to use
-#'   as many as possible, especially with large datasets. Setting this argument
-#'   to \code{1} means function will execute in serial. 
+#' @param parallel If a parallel backend is loaded and available, should the 
+#'   function use it? Highly advisable if hardware permits. 
 #'
 #' @details
 #' M3C is a hypothesis testing framework for consensus clustering. It takes an
@@ -126,21 +125,18 @@ M3C <- function(dat,
                 pacWindow = c(0.1, 0.9),
                 p.adj = NULL,
                 seed = NULL,
-                cores = 1) {
+                parallel = TRUE) {
 
 
   ### PRELIMINARIES ###
 
-  message('***M3C: Monte Carlo Consensus Clustering***')
   if (!class(dat) %in% c('data.frame', 'matrix', 'ExpressionSet')) {
     stop('dat must be an object of class data.frame, matrix, or ExpressionSet.')
   }
   if (inherits(dat, 'ExpressionSet')) {
     dat <- exprs(dat)
   }
-  mat <- as.matrix(dat)
-  n <- ncol(mat)
-  p <- nrow(mat)
+  dat <- as.matrix(dat)
   if (maxK > n) {
     stop('maxK exceeds sample size.')
   }
@@ -168,21 +164,21 @@ M3C <- function(dat,
   if (montecarlo) {
     message('Simulating null distributions...')
     if (refMethod == 'reverse-pca') {
-      pca <- prcomp(t(mat))
+      pca <- prcomp(t(dat))
     } else {
       pca <- NULL
     }
     if (refMethod == 'cholesky') {
-      cd <- chol(as.matrix(nearPD(cov(t(mat)))$mat))
+      cd <- chol(as.matrix(nearPD(cov(t(dat)))$mat))
     } else {
       cd <- NULL
     }
-    ref_pacs_mat <- ref_pacs(mat, maxK = maxK, pca = pca, cd = cd, 
+    ref_pacs_mat <- ref_pacs(dat, maxK = maxK, pca = pca, cd = cd, 
                              refMethod = refMethod, B = B, reps = reps, 
                              distance = distance, clusterAlg = clusterAlg, innerLinkage = innerLinkage,
                              pItem = pItem, pFeature = pFeature, 
                              weightsItem = weightsItem, weightsFeature = weightsFeature, 
-                             pacWindow = pacWindow, seed = seed, cores = cores)
+                             pacWindow = pacWindow, seed = seed, parallel = parallel)
     message('Finished simulating null distributions.')
   }
 
@@ -191,11 +187,11 @@ M3C <- function(dat,
 
   # Observed data
   message('Running consensus cluster algorithm on real data...')
-  cm <- consensus(mat, maxK = maxK, reps = reps, distance = distance,
+  cm <- consensus(dat, maxK = maxK, reps = reps, distance = distance,
                   clusterAlg = clusterAlg, innerLinkage = innerLinkage,
                   pItem = pItem, pFeature = pFeature,
                   weightsItem = weightsItem, weightsFeature = weightsFeature,
-                  seed = seed, cores = cores, check = TRUE)
+                  seed = seed, parallel = parallel, check = TRUE)
   pac <- PAC(cm, pacWindow)
   message('Finished consensus clustering real data.')
 
@@ -227,9 +223,9 @@ M3C <- function(dat,
     out[[k]] <- list('consensusMatrix' = cm[[k]],
                      'consensusTree' = hc,
                      'consensusClusters' = ct,
-                     'refPACs' = ref_pacs_mat[, k])
+                     'refPACs' = ref_pacs_mat[, (k - 1L)])
   }
-  names(out) <- c('results', paste0('k=', 2:maxK))
+  names(out) <- c('results', paste0('k', 2:maxK))
   return(out)
 
 }
