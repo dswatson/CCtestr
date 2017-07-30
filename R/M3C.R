@@ -137,6 +137,8 @@ M3C <- function(dat,
     dat <- exprs(dat)
   }
   dat <- as.matrix(dat)
+  n <- ncol(dat)
+  p <- nrow(dat)
   if (maxK > n) {
     stop('maxK exceeds sample size.')
   }
