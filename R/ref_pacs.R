@@ -165,7 +165,7 @@ ref_pacs <- function(dat,
                     clusterAlg = clusterAlg, innerLinkage = innerLinkage,
                     pItem = pItem, pFeature = pFeature,
                     weightsItem = weightsItem, weightsFeature = weightsFeature,
-                    seed = seed, parallel = parallel, check = FALSE)
+                    seed = seed, parallel = FALSE, check = FALSE)
     # Calculate PAC
     pacs <- PAC(cm, pacWindow)$PAC
     return(pacs)
