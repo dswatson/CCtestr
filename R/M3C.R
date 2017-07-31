@@ -206,13 +206,14 @@ M3C <- function(dat,
     res <- pac %>%
       rename(PAC_observed = PAC) %>%
       mutate(PAC_expected = colMeans2(ref_pacs_mat),
-             PAC_sim_sd = colSds(ref_pacs_mat)) %>%
-      mutate(z = (PAC_expected - PAC_observed) / PAC_sim_sd) %>%  # This is really a negative z-score
-      mutate(SE = PAC_sim_sd * sqrt(1L + 1L/B),
-             p.value = pnorm(-z))
+             PAC_sim_sigma = colSds(ref_pacs_mat)) %>%
+      mutate(z_stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
+      mutate(SE = PAC_sim_sigma * sqrt(1L + 1L/B),
+             p.value = pnorm(-z_stability))
     if (!is.null(p.adj)) {
       res <- res %>% mutate(adj.p = p.adjust(p.value, method = p.adj))
     }
+    res <- res %>% select(-PAC_sim_sigma)
     out[[1]] <- res
   } else {
     out[[1]] <- pac
