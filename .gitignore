@@ -2,4 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-M3C.Rproj
+.Rapp.history
+.Rbuildignore
+cc_testr.Rproj
+desiderata.R
+presets.R
