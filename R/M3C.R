@@ -139,9 +139,6 @@ M3C <- function(dat,
   dat <- as.matrix(dat)
   n <- ncol(dat)
   p <- nrow(dat)
-  if (maxK > n) {
-    stop('maxK exceeds sample size.')
-  }
   if (n > p && montecarlo && refMethod != 'cholesky') {
     warning('Sample size (columns) exceeds feature total (rows). ',
             'Switching to Cholesky decomposition method...')
@@ -181,6 +178,7 @@ M3C <- function(dat,
                              pItem = pItem, pFeature = pFeature, 
                              weightsItem = weightsItem, weightsFeature = weightsFeature, 
                              pacWindow = pacWindow, seed = seed, parallel = parallel)
+    rm(pca, cd)
     message('Finished simulating null distributions.')
   }
 
