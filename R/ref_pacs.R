@@ -85,8 +85,9 @@ ref_pacs <- function(dat,
     dat <- exprs(dat)
   }
   dat <- as.matrix(dat)
-  if (maxK > ncol(dat)) {
-    stop('maxK exceeds sample size.')
+  sample_n <- round(pItem * ncol(dat))
+  if (maxK > sample_n) {
+    stop('maxK exceeds subsample size.')
   }
   if (refMethod == 'pca' && is.null(pca)) {
     stop('pca must be supplied when refMethod = "pca".')
@@ -142,23 +143,24 @@ ref_pacs <- function(dat,
       seed <- seed + b
     }
     # Generate null data
-    switch(refMethod, 
+    null_dat <- switch(refMethod, 
            'reverse-pca' = {
              sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = colSds(pca$x)),
                         nrow = n, ncol = n, byrow = TRUE)
-             null_dat <- t(sim_dat %*% t(pca$rotation)) + pca$center
+             t(sim_dat %*% t(pca$rotation)) + pca$center
            }, 'cholesky' = {
              sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
-             null_dat <- t(sim_dat %*% cd)
+             t(sim_dat %*% cd)
            }, 'range' = {
              mins <- apply(dat, 1, min)
              maxs <- apply(dat, 1, max)
-             null_dat <- matrix(runif(n * p, mins, maxs), nrow = p, ncol = n)
+             matrix(runif(n * p, mins, maxs), nrow = p, ncol = n)
            }, 'permute' = {
              null_dat <- matrix(nrow = p, ncol = n)
              for (probe in seq_len(p)) {
                null_dat[probe, ] <- mat[probe, sample.int(n)]
              }
+             null_dat
            })
     # Generate consensus matrices
     cm <- consensus(null_dat, maxK = maxK, reps = reps, distance = distance,
