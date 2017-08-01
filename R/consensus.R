@@ -81,8 +81,9 @@ consensus <- function(dat,
       dat <- exprs(dat)
     }
     dat <- as.matrix(dat)
-    if (maxK > ncol(dat)) {
-      stop('maxK exceeds sample size.')
+    sample_n <- round(pItem * ncol(dat))
+    if (maxK > sample_n) {
+      stop('maxK exceeds subsample size.')
     }
     if (!innerLinkage %in% c('ward.D', 'ward.D2', 'single', 'complete',
                              'average', 'mcquitty', 'median', 'centroid')) {
