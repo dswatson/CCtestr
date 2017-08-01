@@ -162,20 +162,9 @@ M3C <- function(dat,
 
   if (montecarlo) {
     message('Simulating null distributions...')
-    if (refMethod == 'reverse-pca') {
-      pca <- prcomp(t(dat))
-    } else {
-      pca <- NULL
-    }
-    if (refMethod == 'cholesky') {
-      cd <- chol(as.matrix(nearPD(cov(t(dat)))$mat))
-    } else {
-      cd <- NULL
-    }
-    ref_pacs_mat <- ref_pacs(dat, maxK = maxK, pca = pca, cd = cd, 
-                             refMethod = refMethod, B = B, reps = reps, 
-                             distance = distance, clusterAlg = clusterAlg, innerLinkage = innerLinkage,
-                             pItem = pItem, pFeature = pFeature, 
+    ref_pacs_mat <- ref_pacs(dat, maxK = maxK, refMethod = refMethod, B = B, 
+                             reps = reps, distance = distance, clusterAlg = clusterAlg, 
+                             innerLinkage = innerLinkage, pItem = pItem, pFeature = pFeature, 
                              weightsItem = weightsItem, weightsFeature = weightsFeature, 
                              pacWindow = pacWindow, seed = seed, parallel = parallel)
     rm(pca, cd)
