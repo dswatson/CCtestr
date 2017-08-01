@@ -1,12 +1,8 @@
 Package: M3C
 Title: Rigorously test cluster stability
 Version: 0.0.0.9000
-Authors@R: c(
-  person("David", "Watson", email = "d.watson@qmul.ac.uk", 
-  role = c("aut", "cre")),
-  person("Christopher", "John", email = "christopher.john@qmul.ac.uk",
-  role = c("aut"))
-  )
+Authors@R: person("David", "Watson", email = "d.watson@qmul.ac.uk", 
+  role = c("aut", "cre"))
 Description: M3C provides a hypothesis testing framework for cluster validation.
   Using a modified consensus clustering algorithm, PAC scores are calculated for 
   data simulated from an input matrix in order to estimate the theoretical null 
