@@ -167,7 +167,6 @@ M3C <- function(dat,
                              innerLinkage = innerLinkage, pItem = pItem, pFeature = pFeature, 
                              weightsItem = weightsItem, weightsFeature = weightsFeature, 
                              pacWindow = pacWindow, seed = seed, parallel = parallel)
-    rm(pca, cd)
     message('Finished simulating null distributions.')
   }
 
