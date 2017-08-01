@@ -1,2 +1,2 @@
-# M3C
+# cc_testr
 Vignette TK.
