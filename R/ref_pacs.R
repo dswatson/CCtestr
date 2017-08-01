@@ -6,12 +6,6 @@
 #' @param dat Probe by sample omic data matrix. Data should be filtered and
 #'   normalized prior to analysis.
 #' @param maxK Maximum cluster number to evaluate.
-#' @param pca Object of class \code{prcomp}, to avoid performing 
-#'   eigendecomposition of \code{dat B} times. Only relevant if \code{
-#'   refMethod = "reverse-pca"}.
-#' @param cd Matrix representing the Cholesky decomposition of \code{dat}'s
-#'   nearest positive definite genewise covariance matrix. Only relevant if 
-#'   \code{refMethod = "cholesky"}.
 #' @param refMethod How should null data be generated? Options include \code{
 #'   reverse-pca}, \code{cholesky}, \code{range}, and \code{permute}.
 #' @param B Number of null datasets to generate.
@@ -61,8 +55,6 @@
 
 ref_pacs <- function(dat, 
                      maxK = 3, 
-                     pca = NULL, 
-                     cd = NULL, 
                      refMethod = 'reverse-pca',
                      B = 100,
                      reps = 100, 
@@ -88,11 +80,6 @@ ref_pacs <- function(dat,
   sample_n <- round(pItem * ncol(dat))
   if (maxK > sample_n) {
     stop('maxK exceeds subsample size.')
-  }
-  if (refMethod == 'pca' && is.null(pca)) {
-    stop('pca must be supplied when refMethod = "pca".')
-  } else if (refMethod == 'cholesky' && is.null(cd)) {
-    stop('Cholesky decomposition must be supplied when refMethod = "cholesky".')
   }
   if (!refMethod %in% c('reverse-pca', 'cholesky', 'range', 'permute')) {
     stop('refMethod must be one of "reverse-pca", "cholesky", "range", or ',
@@ -133,7 +120,7 @@ ref_pacs <- function(dat,
   }
   
   # Define pacs_b function
-  pacs_b <- function(b, dat, maxK, pca, cd, refMethod, B, reps, distance, 
+  pacs_b <- function(b, dat, maxK, refMethod, B, reps, distance, 
                      clusterAlg, innerLinkage, pItem, pFeature, weightsItem, 
                      weightsFeature, pacWindow, seed) {
     n <- ncol(dat)
@@ -144,24 +131,26 @@ ref_pacs <- function(dat,
     }
     # Generate null data
     null_dat <- switch(refMethod, 
-           'reverse-pca' = {
-             sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = colSds(pca$x)),
-                        nrow = n, ncol = n, byrow = TRUE)
-             t(sim_dat %*% t(pca$rotation)) + pca$center
-           }, 'cholesky' = {
-             sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
-             t(sim_dat %*% cd)
-           }, 'range' = {
-             mins <- apply(dat, 1, min)
-             maxs <- apply(dat, 1, max)
-             matrix(runif(n * p, mins, maxs), nrow = p, ncol = n)
-           }, 'permute' = {
-             null_dat <- matrix(nrow = p, ncol = n)
-             for (probe in seq_len(p)) {
-               null_dat[probe, ] <- mat[probe, sample.int(n)]
-             }
-             null_dat
-           })
+      'reverse-pca' = {
+        pca <- prcomp(t(dat))
+        sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = colSds(pca$x)),
+                          nrow = n, ncol = n, byrow = TRUE)
+        t(sim_dat %*% t(pca$rotation)) + pca$center
+      }, 'cholesky' = {
+        cd <- chol(as.matrix(nearPD(cov(t(mydata)))$dat))
+        sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
+        t(sim_dat %*% cd)
+      }, 'range' = {
+        mins <- apply(dat, 1, min)
+        maxs <- apply(dat, 1, max)
+        matrix(runif(n * p, mins, maxs), nrow = p, ncol = n)
+      }, 'permute' = {
+        null_dat <- matrix(nrow = p, ncol = n)
+        for (probe in seq_len(p)) {
+          null_dat[probe, ] <- mat[probe, sample.int(n)]
+        }
+        null_dat
+      })
     # Generate consensus matrices
     cm <- consensus(null_dat, maxK = maxK, reps = reps, distance = distance,
                     clusterAlg = clusterAlg, innerLinkage = innerLinkage,
