@@ -1,15 +1,16 @@
-Package: M3C
+Package: cc_testr
 Title: Rigorously test cluster stability
 Version: 0.0.0.9000
 Authors@R: person("David", "Watson", email = "d.watson@qmul.ac.uk", 
   role = c("aut", "cre"))
-Description: M3C provides a hypothesis testing framework for cluster validation.
-  Using a modified consensus clustering algorithm, PAC scores are calculated for 
-  data simulated from an input matrix in order to estimate the theoretical null 
-  distribution of each cluster number k's performance metrics. Results for real 
-  data are subsequently evaluated relative to these distributions. By 
-  systematically testing against well-formulated null hypotheses, test
-  statistics and p-values are computed with high accuracy and known precision. 
+Description: cc_testr provides a hypothesis testing framework for cluster 
+  validation. Using a modified consensus clustering algorithm, PAC scores are 
+  calculated for data simulated from an input matrix in order to estimate the 
+  theoretical null distribution of each cluster number k's performance metrics. 
+  Results for real data are subsequently evaluated relative to these 
+  distributions. By systematically testing against well-formulated null 
+  hypotheses, test statistics and p-values are computed with high accuracy and 
+  known precision. 
 Depends: R (>= 3.4.1)
 License: GPL (>= 3)
 Imports: 
