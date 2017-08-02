@@ -4,16 +4,16 @@
 \alias{consensus}
 \title{Consensus Cluster Algorithm}
 \usage{
-consensus(dat, maxK = 3, reps = 100, distance = "euclidean",
-  clusterAlg = "hclust", innerLinkage = "average", pItem = 0.8,
-  pFeature = 1, weightsItem = NULL, weightsFeature = NULL, seed = NULL,
+consensus(dat, max_k = 3, reps = 100, distance = "euclidean",
+  cluster_alg = "hclust", hclust_method = "average", p_item = 0.8,
+  p_feature = 1, wts_item = NULL, wts_feature = NULL, seed = NULL,
   parallel = TRUE, check = TRUE)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
 normalized prior to analysis.}
 
-\item{maxK}{Maximum cluster number to evaluate.}
+\item{max_k}{Maximum cluster number to evaluate.}
 
 \item{reps}{Number of subsamples to draw.}
 
@@ -21,20 +21,20 @@ normalized prior to analysis.}
 available in \code{\link[stats]{dist}} and \code{\link[vegan]{vegdist}},
 as well as those implemented in the \code{bioDist} package.}
 
-\item{clusterAlg}{Clustering algorithm to implement. Currently supports
+\item{cluster_alg}{Clustering algorithm to implement. Currently supports
 hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 \emph{k}-medoids (\code{"pam"}).}
 
-\item{innerLinkage}{Method to use if \code{clusterAlg = "hclust"}. See \code{
-\link[stats]{hclust}}.}
+\item{hclust_method}{Method to use if \code{cluster_alg = "hclust"}. See 
+\code{\link[stats]{hclust}}.}
 
-\item{pItem}{Proportion of items to include in each subsample.}
+\item{p_item}{Proportion of items to include in each subsample.}
 
-\item{pFeature}{Proportion of features to include in each subsample.}
+\item{p_feature}{Proportion of features to include in each subsample.}
 
-\item{weightsItem}{Optional vector of item weights.}
+\item{wts_item}{Optional vector of item weights.}
 
-\item{weightsFeature}{Optional vector of feature weights.}
+\item{wts_feature}{Optional vector of feature weights.}
 
 \item{seed}{Optional seed for reproducibility.}
 
@@ -46,9 +46,9 @@ FALSE} by internal \code{M3C} functions to cut down on redundant checks,
 but should generally be \code{TRUE} when used interactively.}
 }
 \value{
-A list with \code{maxK} elements, the first of which is \code{NULL}.
-Elements two through \code{maxK} are consensus matrices corresponding to
-cluster numbers \emph{k} = 2 through \code{maxK}.
+A list with \code{max_k} elements, the first of which is \code{NULL}.
+Elements two through \code{max_k} are consensus matrices corresponding to
+cluster numbers \emph{k} = 2 through \code{max_k}.
 }
 \description{
 This function implements the consensus cluster algorithm.
@@ -64,7 +64,7 @@ in which the two were clustered together.
 }
 \examples{
 mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-cc <- consensus(mat, maxK = 4)
+cc <- consensus(mat, max_k = 4)
 
 }
 \references{

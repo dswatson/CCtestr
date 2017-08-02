@@ -4,20 +4,20 @@
 #'
 #' @param dat Probe by sample omic data matrix. Data should be filtered and
 #'   normalized prior to analysis.
-#' @param maxK Maximum cluster number to evaluate.
+#' @param max_k Maximum cluster number to evaluate.
 #' @param reps Number of subsamples to draw.
 #' @param distance Distance metric for clustering. Supports all methods
 #'   available in \code{\link[stats]{dist}} and \code{\link[vegan]{vegdist}},
 #'   as well as those implemented in the \code{bioDist} package.
-#' @param clusterAlg Clustering algorithm to implement. Currently supports
+#' @param cluster_alg Clustering algorithm to implement. Currently supports
 #'   hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 #'   \emph{k}-medoids (\code{"pam"}).
-#' @param innerLinkage Method to use if \code{clusterAlg = "hclust"}. See \code{
-#'   \link[stats]{hclust}}.
-#' @param pItem Proportion of items to include in each subsample.
-#' @param pFeature Proportion of features to include in each subsample.
-#' @param weightsItem Optional vector of item weights.
-#' @param weightsFeature Optional vector of feature weights.
+#' @param hclust_method Method to use if \code{cluster_alg = "hclust"}. See 
+#'   \code{\link[stats]{hclust}}.
+#' @param p_item Proportion of items to include in each subsample.
+#' @param p_feature Proportion of features to include in each subsample.
+#' @param wts_item Optional vector of item weights.
+#' @param wts_feature Optional vector of feature weights.
 #' @param seed Optional seed for reproducibility.
 #' @param parallel If a parallel backend is loaded and available, should the 
 #'   function use it? Highly advisable if hardware permits. 
@@ -34,9 +34,9 @@
 #' represents the proportion of all runs including samples \code{i} and \code{j}
 #' in which the two were clustered together.
 #'
-#' @return A list with \code{maxK} elements, the first of which is \code{NULL}.
-#' Elements two through \code{maxK} are consensus matrices corresponding to
-#' cluster numbers \emph{k} = 2 through \code{maxK}.
+#' @return A list with \code{max_k} elements, the first of which is \code{NULL}.
+#' Elements two through \code{max_k} are consensus matrices corresponding to
+#' cluster numbers \emph{k} = 2 through \code{max_k}.
 #'
 #' @references
 #' Monti, S., Tamayo, P., Mesirov, J., & Golub, T. (2003).
@@ -47,7 +47,7 @@
 #'
 #' @examples
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-#' cc <- consensus(mat, maxK = 4)
+#' cc <- consensus(mat, max_k = 4)
 #'
 #' @seealso
 #' \code{\link[ConsensusClusterPlus]{ConsensusClusterPlus}},
@@ -59,15 +59,15 @@
 #'
 
 consensus <- function(dat,
-                      maxK = 3,
+                      max_k = 3,
                       reps = 100,
                       distance = 'euclidean',
-                      clusterAlg = 'hclust',
-                      innerLinkage = 'average',
-                      pItem = 0.8,
-                      pFeature = 1,
-                      weightsItem = NULL,
-                      weightsFeature = NULL,
+                      cluster_alg = 'hclust',
+                      hclust_method = 'average',
+                      p_item = 0.8,
+                      p_feature = 1,
+                      wts_item = NULL,
+                      wts_feature = NULL,
                       seed = NULL,
                       parallel = TRUE,
                       check = TRUE) {
@@ -81,35 +81,35 @@ consensus <- function(dat,
       dat <- exprs(dat)
     }
     dat <- as.matrix(dat)
-    sample_n <- round(pItem * ncol(dat))
-    if (maxK > sample_n) {
-      stop('maxK exceeds subsample size.')
+    sample_n <- round(p_item * ncol(dat))
+    if (max_k > sample_n) {
+      stop('max_k exceeds subsample size.')
     }
-    if (!innerLinkage %in% c('ward.D', 'ward.D2', 'single', 'complete',
+    if (!hclust_method %in% c('ward.D', 'ward.D2', 'single', 'complete',
                              'average', 'mcquitty', 'median', 'centroid')) {
-      stop('innerLinkage must be one of "ward.D", "ward.D2", "single", ',
+      stop('hclust_method must be one of "ward.D", "ward.D2", "single", ',
            '"complete", "average" "mcquitty" "median" or "centroid". See ?hclust.')
     }
-    if (pItem > 1 || pItem <= 0) {
-      stop('pItem must be on (0, 1].')
+    if (p_item > 1 || p_item <= 0) {
+      stop('p_item must be on (0, 1].')
     }
-    if (pFeature > 1 || pFeature <= 0) {
-      stop('pFeature must be on (0, 1].')
+    if (p_feature > 1 || p_feature <= 0) {
+      stop('p_feature must be on (0, 1].')
     }
-    if (!is.null(weightsItem)) {
-      if (length(weightsItem) != n) {
-        stop('weightsItem must a vector of length ncol(dat).')
+    if (!is.null(wts_item)) {
+      if (length(wts_item) != n) {
+        stop('wts_item must a vector of length ncol(dat).')
       }
-      if (max(weightsItem) > 1 || min(weightsItem) < 0) {
-        stop('All values in weightsItem must be on [0, 1].')
+      if (max(wts_item) > 1 || min(wts_item) < 0) {
+        stop('All values in wts_item must be on [0, 1].')
       }
     }
-    if (!is.null(weightsFeature)) {
-      if (length(weightsFeature) != p) {
-        stop('weightsItem must a vector of length nrow(dat).')
+    if (!is.null(wts_feature)) {
+      if (length(wts_feature) != p) {
+        stop('wts_item must a vector of length nrow(dat).')
       }
-      if (max(weightsFeature) > 1 || min(weightsFeature) < 0) {
-        stop('All values in weightsFeature must be on [0, 1].')
+      if (max(wts_feature) > 1 || min(wts_feature) < 0) {
+        stop('All values in wts_feature must be on [0, 1].')
       }
     }
   } 
@@ -117,8 +117,8 @@ consensus <- function(dat,
   # Run
   n <- ncol(dat)
   p <- nrow(dat)
-  sample_n <- round(n * pItem)
-  if (pFeature == 1L && clusterAlg != 'kmeans') {
+  sample_n <- round(n * p_item)
+  if (p_feature == 1L && cluster_alg != 'kmeans') {
     dm <- as.matrix(dist_mat(dat, distance))
   }
   if (parallel) {
@@ -132,26 +132,26 @@ consensus <- function(dat,
           if (!is.null(seed)) {
             set.seed(seed + i)
           }
-          samples <- sample.int(n, sample_n, prob = weightsItem)
-          if (pFeature < 1L) {
-            probe_n <- round(p * pFeature)
-            probes <- sample.int(p, probe_n, prob = weightsFeature)
+          samples <- sample.int(n, sample_n, prob = wts_item)
+          if (p_feature < 1L) {
+            probe_n <- round(p * p_feature)
+            probes <- sample.int(p, probe_n, prob = wts_feature)
             dat_i <- dat[probes, samples]
-            if (clusterAlg != 'kmeans') {
+            if (cluster_alg != 'kmeans') {
               dm_i <- dist_mat(dat_i, distance)
             }
           } else {
-            if (clusterAlg != 'kmeans') {
+            if (cluster_alg != 'kmeans') {
               dm_i <- as.dist(dm[samples, samples])
             } else {
               dat_i <- dat[, samples]
             }
           }
-          if (clusterAlg == 'kmeans') {
+          if (cluster_alg == 'kmeans') {
             clusters <- kmeans(dat_i, k)$cluster
-          } else if (clusterAlg == 'hclust') {
-            clusters <- cutree(fastcluster::hclust(dm_i, method = innerLinkage), k)
-          } else if (clusterAlg == 'pam') {
+          } else if (cluster_alg == 'hclust') {
+            clusters <- cutree(fastcluster::hclust(dm_i, method = hclust_method), k)
+          } else if (cluster_alg == 'pam') {
             clusters <- pam(dm_i, k, cluster.only = TRUE)
           }
           assignments[i, samples] <- clusters
@@ -169,7 +169,7 @@ consensus <- function(dat,
       }
     }
     # Export
-    consensus_mats <- foreach(k = seq_len(maxK)) %dopar% calc(k)
+    consensus_mats <- foreach(k = seq_len(max_k)) %dopar% calc(k)
     return(consensus_mats)
   } else {
     # Serial version
@@ -179,31 +179,31 @@ consensus <- function(dat,
       if (!is.null(seed)) {
         set.seed(seed + i)
       }
-      samples <- sample.int(n, sample_n, prob = weightsItem)
+      samples <- sample.int(n, sample_n, prob = wts_item)
       count_mat <- adjacency(rep(1L, sample_n), samples, count_mat)
-      if (pFeature < 1L) {
-        probe_n <- round(p * pFeature)
-        probes <- sample.int(p, probe_n, prob = weightsFeature)
+      if (p_feature < 1L) {
+        probe_n <- round(p * p_feature)
+        probes <- sample.int(p, probe_n, prob = wts_feature)
         dat_i <- dat[probes, samples]
-        if (clusterAlg != 'kmeans') {
+        if (cluster_alg != 'kmeans') {
           dm_i <- dist_mat(dat_i, distance)
         }
       } else {
-        if (clusterAlg != 'kmeans') {
+        if (cluster_alg != 'kmeans') {
           dm_i <- as.dist(dm[samples, samples])
         } else {
           dat_i <- dat[, samples]
         }
       }
-      for (k in 2:maxK) {
+      for (k in 2:max_k) {
         if (i == 1L) {
           clust_mats[[k]] <- matrix(0L, nrow = n, ncol = n)
         }
-        if (clusterAlg == 'kmeans') {
+        if (cluster_alg == 'kmeans') {
           clusters <- kmeans(dat_i, k)$cluster
-        } else if (clusterAlg == 'hclust') {
-          clusters <- cutree(fastcluster::hclust(dm_i, method = innerLinkage), k)
-        } else if (clusterAlg == 'pam') {
+        } else if (cluster_alg == 'hclust') {
+          clusters <- cutree(fastcluster::hclust(dm_i, method = hclust_method), k)
+        } else if (cluster_alg == 'pam') {
           clusters <- pam(dm_i, k, cluster.only = TRUE)
         }
         clust_mats[[k]] <- adjacency(clusters, samples, clust_mats[[k]])
@@ -211,7 +211,7 @@ consensus <- function(dat,
     }
     # Export
     consensus_mats <- list()
-    for (k in 2:maxK) {
+    for (k in 2:max_k) {
       consensus_mats[[k]] <- clust_mats[[k]] / count_mat
     }
     return(consensus_mats)
