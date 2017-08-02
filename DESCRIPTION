@@ -1,9 +1,9 @@
-Package: cc_testr
+Package: CCtestr
 Title: Rigorously test cluster stability
 Version: 0.0.0.9000
 Authors@R: person("David", "Watson", email = "d.watson@qmul.ac.uk", 
   role = c("aut", "cre"))
-Description: cc_testr provides a hypothesis testing framework for cluster 
+Description: CCtestr provides a hypothesis testing framework for cluster 
   validation. Using a modified consensus clustering algorithm, PAC scores are 
   calculated for data simulated from an input matrix in order to estimate the 
   theoretical null distribution of each cluster number k's performance metrics. 
