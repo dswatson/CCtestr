@@ -4,28 +4,20 @@
 \alias{ref_pacs}
 \title{Generate Reference PAC Scores}
 \usage{
-ref_pacs(dat, maxK = 3, pca = NULL, cd = NULL,
-  refMethod = "reverse-pca", B = 100, reps = 100,
-  distance = "euclidean", clusterAlg = "hclust", innerLinkage = "average",
-  pItem = 0.8, pFeature = 1, weightsItem = NULL, weightsFeature = NULL,
-  pacWindow = c(0.1, 0.9), seed = NULL, parallel = TRUE)
+ref_pacs(dat, max_k = 3, ref_method = "svd", B = 100, reps = 100,
+  distance = "euclidean", cluster_alg = "hclust",
+  hclust_method = "average", p_item = 0.8, p_feature = 1,
+  wts_item = NULL, wts_feature = NULL, pac_window = c(0.1, 0.9),
+  seed = NULL, parallel = TRUE)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
 normalized prior to analysis.}
 
-\item{maxK}{Maximum cluster number to evaluate.}
+\item{max_k}{Maximum cluster number to evaluate.}
 
-\item{pca}{Object of class \code{prcomp}, to avoid performing 
-eigendecomposition of \code{dat B} times. Only relevant if \code{
-refMethod = "reverse-pca"}.}
-
-\item{cd}{Matrix representing the Cholesky decomposition of \code{dat}'s
-nearest positive definite genewise covariance matrix. Only relevant if 
-\code{refMethod = "cholesky"}.}
-
-\item{refMethod}{How should null data be generated? Options include \code{
-reverse-pca}, \code{cholesky}, \code{range}, and \code{permute}.}
+\item{ref_method}{How should null data be generated? Options include \code{
+svd}, \code{cholesky}, \code{range}, and \code{permute}.}
 
 \item{B}{Number of null datasets to generate.}
 
@@ -35,22 +27,22 @@ reverse-pca}, \code{cholesky}, \code{range}, and \code{permute}.}
 available in \code{\link[stats]{dist}} and \code{\link[vegan]{vegdist}},
 as well as those implemented in the \code{bioDist} package.}
 
-\item{clusterAlg}{Clustering algorithm to implement. Currently supports
+\item{cluster_alg}{Clustering algorithm to implement. Currently supports
 hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 \emph{k}-medoids (\code{"pam"}).}
 
-\item{innerLinkage}{Method to use if \code{clusterAlg = "hclust"}. See \code{
+\item{hclust_method}{Method to use if \code{cluster_alg = "hclust"}. See \code{
 \link[stats]{hclust}}.}
 
-\item{pItem}{Proportion of items to include in each subsample.}
+\item{p_item}{Proportion of items to include in each subsample.}
 
-\item{pFeature}{Proportion of features to include in each subsample.}
+\item{p_feature}{Proportion of features to include in each subsample.}
 
-\item{weightsItem}{Optional vector of item weights.}
+\item{wts_item}{Optional vector of item weights.}
 
-\item{weightsFeature}{Optional vector of feature weights.}
+\item{wts_feature}{Optional vector of feature weights.}
 
-\item{pacWindow}{Lower and upper bounds for the consensus index sub-interval
+\item{pac_window}{Lower and upper bounds for the consensus index sub-interval
 over which to calculate the PAC. Must be on (0, 1).}
 
 \item{seed}{Optional seed for reproducibility.}
@@ -59,7 +51,7 @@ over which to calculate the PAC. Must be on (0, 1).}
 function use it? Highly advisable if hardware permits.}
 }
 \value{
-A matrix with \code{B} rows and \code{maxK - 1} columns containing 
+A matrix with \code{B} rows and \code{max_k - 1} columns containing 
 null PAC scores for each cluster number \emph{k}.
 }
 \description{
@@ -76,12 +68,11 @@ that tends toward normality as \emph{B} increases.
 
 Just as reference PAC distributions are the theoretical core of the M3C 
 approach to cluster validation, \code{ref_pacs} is the computational core 
-of the \code{M3C} package. This function can take some time to execute, and 
-should ideally be run in parallel, especially with large datasets.
+of the \code{CCtestr} package. This function can take some time to execute, 
+and should ideally be run in parallel, especially with large datasets.
 }
 \examples{
 mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-pca <- prcomp(t(mat))
-rp <- ref_pacs(mat, pca = pca, refMethod = "reverse-pca")
+rp <- ref_pacs(mat, ref_method = "svd")
 
 }
