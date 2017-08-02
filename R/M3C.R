@@ -4,32 +4,31 @@
 #'
 #' @param dat Probe by sample omic data matrix. Data should be filtered and
 #'   normalized prior to analysis.
-#' @param maxK Maximum cluster number to evaluate.
-#' @param montecarlo Generate null distribution for statistical comparison? If
+#' @param max_k Maximum cluster number to evaluate.
+#' @param null Generate null distribution for statistical comparison? If
 #'   \code{FALSE}, function implements the traditional consensus cluster
 #'   algorithm.
-#' @param refMethod How should null data be generated? Options include \code{
-#'   reverse-pca}, \code{cholesky}, \code{range}, and \code{permute}.
+#' @param ref_method How should null data be generated? Options include \code{
+#'   svd}, \code{cholesky}, \code{range}, and \code{permute}. See Details.
 #' @param B Number of null datasets to generate.
 #' @param reps Number of subsamples to draw for consensus clustering.
 #' @param distance Distance metric for clustering. Supports all methods
 #'   available in \code{\link[stats]{dist}} and \code{\link[vegan]{vegdist}},
 #'   as well as those implemented in the \code{bioDist} package.
-#' @param clusterAlg Clustering algorithm to implement. Currently supports
+#' @param cluster_alg Clustering algorithm to implement. Currently supports
 #'   hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 #'   \emph{k}-medoids (\code{"pam"}).
-#' @param innerLinkage Method to use if \code{clusterAlg = "hclust"}. See \code{
-#'   \link[stats]{hclust}}.
-#' @param finalLinkage Method to use for clustering on consensus matrix output.
-#'   Same options as for \code{innerLinkage}.
-#' @param pItem Proportion of items to include in each subsample.
-#' @param pFeature Proportion of features to include in each subsample.
-#' @param weightsItem Optional vector of item weights.
-#' @param weightsFeature Optional vector of feature weights.
-#' @param pacWindow Lower and upper bounds for the consensus index sub-interval
+#' @param hclust_method Method to use if \code{cluster_alg = "hclust"}. See 
+#'   \code{\link[stats]{hclust}}. Will also be applied for clustering on 
+#'   consensus matrix output.
+#' @param p_item Proportion of items to include in each subsample.
+#' @param p_feature Proportion of features to include in each subsample.
+#' @param wts_item Optional vector of item weights.
+#' @param wts_feature Optional vector of feature weights.
+#' @param pac_window Lower and upper bounds for the consensus index sub-interval
 #'   over which to calculate the PAC. Must be on (0, 1).
-#' @param p.adj Optional method for \emph{p}-value adjustment. Supports all
-#'   options available in \code{\link[stats]{p.adjust}}.
+#' @param p_adj Optional method for \emph{p}-value adjustment. Supports all
+#'   options available in \code{\link[stats]{p_adjust}}.
 #' @param seed Optional seed for reproducibility.
 #' @param parallel If a parallel backend is loaded and available, should the 
 #'   function use it? Highly advisable if hardware permits. 
@@ -41,16 +40,16 @@
 #' algorithm is then run on each simulated matrix, with PAC scores stored for
 #' reference. The function then consensus clusters the actual input data, and
 #' PAC scores for each cluster number \emph{k} are tested against their
-#' theoretical null distribution.
+#' empirically estimated null distribution.
 #'
 #' \code{M3C} currently supports four methods for generating null datasets from
-#' a given input matrix. \code{reverse-pca} and \code{cholesky} use different
-#' forms of matrix decomposition to preserve genewise covariance while
-#' scrambling samplewise covariance. The former option is faster, while the
-#' latter is preferable when sample size exceeds gene count. When \code{
-#' refMethod = "range"}, expression values are drawn from uniform distributions
+#' a given input matrix. \code{svd} and \code{cholesky} use different forms of 
+#' matrix decomposition to preserve genewise covariance while scrambling 
+#' samplewise covariance. The former option is faster, while the latter is 
+#' preferable when sample size exceeds gene count. When \code{
+#' ref_method = "range"}, expression values are drawn from uniform distributions
 #' with minima and maxima set to each gene's observed minimum and maximum. When
-#' \code{refMethod = "permute"}, each row's values are randomly shuffled. These
+#' \code{ref_method = "permute"}, each row's values are randomly shuffled. These
 #' latter two methods do not preserve genewise covariance, which may bias
 #' results.
 #'
@@ -58,29 +57,29 @@
 #' given cluster number \emph{k}, we first compute the consensus matrix via
 #' consensus clustering; then generate the empirical CDF curve for the lower
 #' triangle of that matrix; find CDF-values for the upper and lower bounds of
-#' the PAC window; and subtract latter number from the former. Since the
+#' the PAC window; and subtract the latter number from the former. Since the
 #' consensus matrix for a perfectly stable cluster would consist of just 1s and
 #' 0s, the ideal CDF curve is flat in the middle. The goal is therefore to
 #' minimize the PAC. See Senbabaoglu et al. (2014) for more details.
 #'
-#' @return A list with \code{maxK} elements. If \code{montecarlo = TRUE}, then
+#' @return A list with \code{max_k} elements. If \code{null = TRUE}, then
 #' the first item is a results data frame with columns for cluster number \emph{
 #' k}, observed PAC score, expected PAC score, \emph{z}-statistic, and
 #' \emph{p}-value. Standard errors are also returned, though may be replaced by
 #' confidence intervals if \code{CI} is non-\code{NULL}. Adjusted \emph{
-#' p}-values are also returned if \code{p.adj} is non-\code{NULL}.
+#' p}-values are also returned if \code{p_adj} is non-\code{NULL}.
 #'
-#' If \code{montecarlo = FALSE}, then the first item is a results data frame
+#' If \code{null = FALSE}, then the first item is a results data frame
 #' with columns for cluster number \emph{k} and PAC score.
 #'
-#' Items two through \code{maxK} are lists corresponding to the unique values of
-#' \emph{k}, each containing the following three elements: the consensus matrix,
-#' tree, and cluster assignments for that \emph{k} as determined by consensus
-#' clustering.
+#' Items two through \code{max_k} are lists corresponding to the unique values 
+#' of \emph{k}, each containing the following three elements: the consensus 
+#' matrix, tree, and cluster assignments for that \emph{k} as determined by 
+#' consensus clustering.
 #'
-#' Plots are also optionally returned or saved. If \code{montecarlo = TRUE},
+#' Plots are also optionally returned or saved. If \code{null = TRUE},
 #' then the figure depicts \emph{z}-scores for all \emph{k}; if \code{
-#' montecarlo = FALSE}, the figure depicts PAC scores for all \emph{k}.
+#' null = FALSE}, the figure depicts PAC scores for all \emph{k}.
 #'
 #' @references
 #' Monti, S., Tamayo, P., Mesirov, J., & Golub, T. (2003).
@@ -109,21 +108,20 @@
 #'
 
 M3C <- function(dat,
-                maxK = 3,
-                montecarlo = TRUE,
-                refMethod = 'reverse-pca',
+                max_k = 3,
+                null = TRUE,
+                ref_method = 'svd',
                 B = 100,
                 reps = 100,
                 distance = 'euclidean',
-                clusterAlg = 'hclust',
-                innerLinkage = 'average',
-                finalLinkage = 'average',
-                pItem = 0.8,
-                pFeature = 1,
-                weightsItem = NULL,
-                weightsFeature = NULL,
-                pacWindow = c(0.1, 0.9),
-                p.adj = NULL,
+                cluster_alg = 'hclust',
+                hclust_method = 'average',
+                p_item = 0.8,
+                p_feature = 1,
+                wts_item = NULL,
+                wts_feature = NULL,
+                pac_window = c(0.1, 0.9),
+                p_adj = NULL,
                 seed = NULL,
                 parallel = TRUE) {
 
@@ -139,34 +137,34 @@ M3C <- function(dat,
   dat <- as.matrix(dat)
   n <- ncol(dat)
   p <- nrow(dat)
-  if (n > p && montecarlo && refMethod != 'cholesky') {
+  if (n > p && null && ref_method != 'cholesky') {
     warning('Sample size (columns) exceeds feature total (rows). ',
             'Switching to Cholesky decomposition method...')
-    refMethod <- 'cholesky'
+    ref_method <- 'cholesky'
   }
-  if (!finalLinkage %in% c('ward.D', 'ward.D2', 'single', 'complete',
-                           'average', 'mcquitty', 'median', 'centroid')) {
-    stop('finalLinkage must be one of "ward.D", "ward.D2", "single", ',
+  if (!hclust_method %in% c('ward.D', 'ward.D2', 'single', 'complete',
+                            'average', 'mcquitty', 'median', 'centroid')) {
+    stop('hclust_method must be one of "ward.D", "ward.D2", "single", ',
          '"complete", "average" "mcquitty" "median" or "centroid". See ?hclust.')
   }
-  if (!is.null(p.adj)) {
-    if (!p.adj %in% c('holm', 'hochberg', 'hommel',
+  if (!is.null(p_adj)) {
+    if (!p_adj %in% c('holm', 'hochberg', 'hommel',
                       'bonferroni', 'BH', 'BY', 'fdr')) {
-      stop('p.adj must be one of "holm", "hochberg", "hommel", "bonferroni", ',
-           '"BH", "BY", or "fdr". See ?p.adjust.')
+      stop('p_adj must be one of "holm", "hochberg", "hommel", "bonferroni", ',
+           '"BH", "BY", or "fdr". See ?p_adjust.')
     }
   }
 
 
   ### PART I: GENERATE REFERENCE PAC SCORES ###
 
-  if (montecarlo) {
+  if (null) {
     message('Simulating null distributions...')
-    ref_pacs_mat <- ref_pacs(dat, maxK = maxK, refMethod = refMethod, B = B, 
-                             reps = reps, distance = distance, clusterAlg = clusterAlg, 
-                             innerLinkage = innerLinkage, pItem = pItem, pFeature = pFeature, 
-                             weightsItem = weightsItem, weightsFeature = weightsFeature, 
-                             pacWindow = pacWindow, seed = seed, parallel = parallel)
+    ref_pacs_mat <- ref_pacs(dat, max_k = max_k, ref_method = ref_method, B = B, 
+                             reps = reps, distance = distance, cluster_alg = cluster_alg, 
+                             hclust_method = hclust_method, p_item = p_item, p_feature = p_feature, 
+                             wts_item = wts_item, wts_feature = wts_feature, 
+                             pac_window = pac_window, seed = seed, parallel = parallel)
     message('Finished simulating null distributions.')
   }
 
@@ -175,19 +173,19 @@ M3C <- function(dat,
 
   # Observed data
   message('Running consensus cluster algorithm on real data...')
-  cm <- consensus(dat, maxK = maxK, reps = reps, distance = distance,
-                  clusterAlg = clusterAlg, innerLinkage = innerLinkage,
-                  pItem = pItem, pFeature = pFeature,
-                  weightsItem = weightsItem, weightsFeature = weightsFeature,
+  cm <- consensus(dat, max_k = max_k, reps = reps, distance = distance,
+                  cluster_alg = cluster_alg, hclust_method = hclust_method,
+                  p_item = p_item, p_feature = p_feature,
+                  wts_item = wts_item, wts_feature = wts_feature,
                   seed = seed, parallel = parallel, check = TRUE)
-  pac <- PAC(cm, pacWindow)
+  pac <- PAC(cm, pac_window)
   message('Finished consensus clustering real data.')
 
 
   ### PART III: COMPARE RESULTS ###
 
   out <- list()
-  if (montecarlo) {
+  if (null) {
     # Results table
     res <- pac %>%
       rename(PAC_observed = PAC) %>%
@@ -196,8 +194,8 @@ M3C <- function(dat,
       mutate(z_stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
       mutate(SE = PAC_sim_sigma * sqrt(1L + 1L/B),
              p.value = pnorm(-z_stability))
-    if (!is.null(p.adj)) {
-      res <- res %>% mutate(adj.p = p.adjust(p.value, method = p.adj))
+    if (!is.null(p_adj)) {
+      res <- res %>% mutate(adj.p = p.adjust(p.value, method = p_adj))
     }
     res <- res %>% select(-PAC_sim_sigma)
     out[[1]] <- res
@@ -206,7 +204,7 @@ M3C <- function(dat,
   }
 
   # Export
-  for (k in 2:maxK) {
+  for (k in 2:max_k) {
     hc <- fastcluster::hclust(as.dist(1L - cm[[k]]), method = finalLinkage)
     ct <- cutree(hc, k)
     out[[k]] <- list('consensusMatrix' = cm[[k]],
@@ -214,7 +212,7 @@ M3C <- function(dat,
                      'consensusClusters' = ct,
                      'refPACs' = ref_pacs_mat[, (k - 1L)])
   }
-  names(out) <- c('results', paste0('k', 2:maxK))
+  names(out) <- c('results', paste0('k', 2:max_k))
   return(out)
 
 }

@@ -4,24 +4,24 @@
 \alias{M3C}
 \title{Monte Carlo Consensus Clustering}
 \usage{
-M3C(dat, maxK = 3, montecarlo = TRUE, refMethod = "reverse-pca",
-  B = 100, reps = 100, distance = "euclidean", clusterAlg = "hclust",
-  innerLinkage = "average", finalLinkage = "average", pItem = 0.8,
-  pFeature = 1, weightsItem = NULL, weightsFeature = NULL,
-  pacWindow = c(0.1, 0.9), p.adj = NULL, seed = NULL, parallel = TRUE)
+M3C(dat, max_k = 3, null = TRUE, ref_method = "svd", B = 100,
+  reps = 100, distance = "euclidean", cluster_alg = "hclust",
+  hclust_method = "average", p_item = 0.8, p_feature = 1,
+  wts_item = NULL, wts_feature = NULL, pac_window = c(0.1, 0.9),
+  p_adj = NULL, seed = NULL, parallel = TRUE)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
 normalized prior to analysis.}
 
-\item{maxK}{Maximum cluster number to evaluate.}
+\item{max_k}{Maximum cluster number to evaluate.}
 
-\item{montecarlo}{Generate null distribution for statistical comparison? If
+\item{null}{Generate null distribution for statistical comparison? If
 \code{FALSE}, function implements the traditional consensus cluster
 algorithm.}
 
-\item{refMethod}{How should null data be generated? Options include \code{
-reverse-pca}, \code{cholesky}, \code{range}, and \code{permute}.}
+\item{ref_method}{How should null data be generated? Options include \code{
+svd}, \code{cholesky}, \code{range}, and \code{permute}. See Details.}
 
 \item{B}{Number of null datasets to generate.}
 
@@ -31,29 +31,27 @@ reverse-pca}, \code{cholesky}, \code{range}, and \code{permute}.}
 available in \code{\link[stats]{dist}} and \code{\link[vegan]{vegdist}},
 as well as those implemented in the \code{bioDist} package.}
 
-\item{clusterAlg}{Clustering algorithm to implement. Currently supports
+\item{cluster_alg}{Clustering algorithm to implement. Currently supports
 hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 \emph{k}-medoids (\code{"pam"}).}
 
-\item{innerLinkage}{Method to use if \code{clusterAlg = "hclust"}. See \code{
-\link[stats]{hclust}}.}
+\item{hclust_method}{Method to use if \code{cluster_alg = "hclust"}. See 
+\code{\link[stats]{hclust}}. Will also be applied for clustering on 
+consensus matrix output.}
 
-\item{finalLinkage}{Method to use for clustering on consensus matrix output.
-Same options as for \code{innerLinkage}.}
+\item{p_item}{Proportion of items to include in each subsample.}
 
-\item{pItem}{Proportion of items to include in each subsample.}
+\item{p_feature}{Proportion of features to include in each subsample.}
 
-\item{pFeature}{Proportion of features to include in each subsample.}
+\item{wts_item}{Optional vector of item weights.}
 
-\item{weightsItem}{Optional vector of item weights.}
+\item{wts_feature}{Optional vector of feature weights.}
 
-\item{weightsFeature}{Optional vector of feature weights.}
-
-\item{pacWindow}{Lower and upper bounds for the consensus index sub-interval
+\item{pac_window}{Lower and upper bounds for the consensus index sub-interval
 over which to calculate the PAC. Must be on (0, 1).}
 
-\item{p.adj}{Optional method for \emph{p}-value adjustment. Supports all
-options available in \code{\link[stats]{p.adjust}}.}
+\item{p_adj}{Optional method for \emph{p}-value adjustment. Supports all
+options available in \code{\link[stats]{p_adjust}}.}
 
 \item{seed}{Optional seed for reproducibility.}
 
@@ -61,24 +59,24 @@ options available in \code{\link[stats]{p.adjust}}.}
 function use it? Highly advisable if hardware permits.}
 }
 \value{
-A list with \code{maxK} elements. If \code{montecarlo = TRUE}, then
+A list with \code{max_k} elements. If \code{null = TRUE}, then
 the first item is a results data frame with columns for cluster number \emph{
 k}, observed PAC score, expected PAC score, \emph{z}-statistic, and
 \emph{p}-value. Standard errors are also returned, though may be replaced by
 confidence intervals if \code{CI} is non-\code{NULL}. Adjusted \emph{
-p}-values are also returned if \code{p.adj} is non-\code{NULL}.
+p}-values are also returned if \code{p_adj} is non-\code{NULL}.
 
-If \code{montecarlo = FALSE}, then the first item is a results data frame
+If \code{null = FALSE}, then the first item is a results data frame
 with columns for cluster number \emph{k} and PAC score.
 
-Items two through \code{maxK} are lists corresponding to the unique values of
-\emph{k}, each containing the following three elements: the consensus matrix,
-tree, and cluster assignments for that \emph{k} as determined by consensus
-clustering.
+Items two through \code{max_k} are lists corresponding to the unique values 
+of \emph{k}, each containing the following three elements: the consensus 
+matrix, tree, and cluster assignments for that \emph{k} as determined by 
+consensus clustering.
 
-Plots are also optionally returned or saved. If \code{montecarlo = TRUE},
+Plots are also optionally returned or saved. If \code{null = TRUE},
 then the figure depicts \emph{z}-scores for all \emph{k}; if \code{
-montecarlo = FALSE}, the figure depicts PAC scores for all \emph{k}.
+null = FALSE}, the figure depicts PAC scores for all \emph{k}.
 }
 \description{
 This function implements the Monte Carlo consensus clustering algorithm.
@@ -90,16 +88,16 @@ properties but no samplewise cluster structure. The consensus cluster
 algorithm is then run on each simulated matrix, with PAC scores stored for
 reference. The function then consensus clusters the actual input data, and
 PAC scores for each cluster number \emph{k} are tested against their
-theoretical null distribution.
+empirically estimated null distribution.
 
 \code{M3C} currently supports four methods for generating null datasets from
-a given input matrix. \code{reverse-pca} and \code{cholesky} use different
-forms of matrix decomposition to preserve genewise covariance while
-scrambling samplewise covariance. The former option is faster, while the
-latter is preferable when sample size exceeds gene count. When \code{
-refMethod = "range"}, expression values are drawn from uniform distributions
+a given input matrix. \code{svd} and \code{cholesky} use different forms of 
+matrix decomposition to preserve genewise covariance while scrambling 
+samplewise covariance. The former option is faster, while the latter is 
+preferable when sample size exceeds gene count. When \code{
+ref_method = "range"}, expression values are drawn from uniform distributions
 with minima and maxima set to each gene's observed minimum and maximum. When
-\code{refMethod = "permute"}, each row's values are randomly shuffled. These
+\code{ref_method = "permute"}, each row's values are randomly shuffled. These
 latter two methods do not preserve genewise covariance, which may bias
 results.
 
@@ -107,7 +105,7 @@ PAC stands for proportion of ambiguous clustering. To calculate the PAC for a
 given cluster number \emph{k}, we first compute the consensus matrix via
 consensus clustering; then generate the empirical CDF curve for the lower
 triangle of that matrix; find CDF-values for the upper and lower bounds of
-the PAC window; and subtract latter number from the former. Since the
+the PAC window; and subtract the latter number from the former. Since the
 consensus matrix for a perfectly stable cluster would consist of just 1s and
 0s, the ideal CDF curve is flat in the middle. The goal is therefore to
 minimize the PAC. See Senbabaoglu et al. (2014) for more details.
