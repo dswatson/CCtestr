@@ -140,9 +140,9 @@ ref_pacs <- function(dat,
         sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
         t(sim_dat %*% cd)
       }, 'range' = {
-        mins <- apply(dat, 1, min)
-        maxs <- apply(dat, 1, max)
-        matrix(runif(n * p, mins, maxs), nrow = p, ncol = n)
+        ranges <- apply(dat, 1, range)
+        matrix(runif(n * p, min = ranges[1], max = ranges[2]), 
+               nrow = p, ncol = n)
       }, 'permute' = {
         null_dat <- matrix(nrow = p, ncol = n)
         for (probe in seq_len(p)) {
