@@ -49,7 +49,6 @@
 #' rp <- ref_pacs(mat, ref_method = "svd")
 #'
 #' @export
-#' @importFrom matrixStats colSds
 #' 
 
 ref_pacs <- function(dat, 
