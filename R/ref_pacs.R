@@ -132,9 +132,10 @@ ref_pacs <- function(dat,
     null_dat <- switch(ref_method, 
       'svd' = {
         pca <- prcomp(t(dat))
-        sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = colSds(pca$x)),
+        ranges <- apply(pca$x, 2, range)
+        sim_dat <- matrix(runif(n^2, min = ranges[1], max = ranges[2]),
                           nrow = n, ncol = n, byrow = TRUE)
-        t(sim_dat %*% t(pca$rotation)) + pca$center
+        t(sim %*% t(pca$rotation)) + pca$center
       }, 'cholesky' = {
         cd <- chol(as.matrix(nearPD(cov(t(mydata)))$dat))
         sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
