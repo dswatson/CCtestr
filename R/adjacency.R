@@ -17,9 +17,7 @@
 adjacency <- function(clusters, samples, mat) {
 
   names(clusters) <- samples
-  cluster_list <- lapply(unique(clusters), function(k) {
-    as.numeric(names(clusters[clusters %in% k]))
-  })
+  cluster_list <- split(samples, clusters)
   for (k in seq_along(cluster_list)) {
     dummy <- as.numeric(seq_len(ncol(mat)) %in% cluster_list[[k]])
     updt <- outer(dummy, dummy)
