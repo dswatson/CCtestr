@@ -7,7 +7,8 @@
 #'   normalized prior to analysis.
 #' @param max_k Maximum cluster number to evaluate.
 #' @param ref_method How should null data be generated? Options include \code{
-#'   svd}, \code{cholesky}, \code{range}, and \code{permute}.
+#'   pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
+#'   permute}. See Details.
 #' @param B Number of null datasets to generate.
 #' @param reps Number of subsamples to draw for consensus clustering.
 #' @param distance Distance metric for clustering. Supports all methods
@@ -36,7 +37,38 @@
 #' is therefore 1, and PAC scores for each \emph{k} form a null distribution 
 #' that tends toward normality as \emph{B} increases. 
 #' 
-#' Just as reference PAC distributions are the theoretical core of the M3C 
+#' \code{ref_pacs} currently supports five methods for generating null datasets 
+#' from a given input matrix: 
+#' 
+#' \itemize{
+#'   \item \code{"pc_norm"} simulates the principal components by taking random 
+#'     draws from a normal distribution with variance equal to the true 
+#'     eigenvalues. Data are subsequently backtransformed to their original 
+#'     dimensions by cross-multiplication with the true eigenvector matrix.
+#'   \item \code{"pc_unif"} simulates the principal components by taking random 
+#'     draws from a uniform distribution with ranges equal to those of the true 
+#'     principal components. Data are subsequently backtransformed to their 
+#'     original dimensions by cross-multiplication with the true eigenvector 
+#'     matrix. 
+#'   \item \code{"cholesky"} simulates random Gaussian noise around the Cholesky
+#'     decomposition of the feature-wise covariance matrix's nearest positive
+#'     definite approximation.
+#'   \item \code{"range"} selects random values uniformly from each feature's 
+#'     observed range. 
+#'   \item \code{"permute"} shuffles the values of each feature.
+#' }
+#' 
+#' The first three options use different forms of matrix decomposition to 
+#' preserve the feature-wise covariance while scrambling the item-wise 
+#' covariance. \code{"pc_norm"} tends to generate the most realistic null data, 
+#' while \code{"pc_unif"} is more likely to guarantee a true \emph{k} of 1. Both 
+#' methods are fast and stable when features outnumber items. When items 
+#' outnumber features, \code{ref_method} defaults to \code{"cholesky"}, which 
+#' takes longer to compute, but is better suited for such cases. The final two 
+#' options are included for convenience, but do not preserve featurewise 
+#' covariance, which may bias results. 
+#' 
+#' Just as reference PAC distributions are the theoretical core of the CCtestr 
 #' approach to cluster validation, \code{ref_pacs} is the computational core 
 #' of the \code{CCtestr} package. This function can take some time to execute, 
 #' and should ideally be run in parallel, especially with large datasets. 
@@ -46,14 +78,15 @@
 #'
 #' @examples
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-#' rp <- ref_pacs(mat, ref_method = "svd")
+#' rp <- ref_pacs(mat, ref_method = "pc_norm")
 #'
 #' @export
+#' @importFrom Matrix nearPD
 #' 
 
 ref_pacs <- function(dat, 
                      max_k = 3, 
-                     ref_method = 'svd',
+                     ref_method = 'pc_norm',
                      B = 100,
                      reps = 100, 
                      distance = 'euclidean', 
@@ -79,9 +112,9 @@ ref_pacs <- function(dat,
   if (max_k > sample_n) {
     stop('max_k exceeds subsample size.')
   }
-  if (!ref_method %in% c('svd', 'cholesky', 'range', 'permute')) {
-    stop('ref_method must be one of "svd", "cholesky", "range", or ',
-         '"permute".')
+  if (!ref_method %in% c('pc_norm', 'pc_unif', 'cholesky', 'range', 'permute')) {
+    stop('ref_method must be one of "pc_norm", "pc_unif", "cholesky", ', 
+         '"range", or "permute".')
   }
   if (!hclust_method %in% c('ward.D', 'ward.D2', 'single', 'complete',
                            'average', 'mcquitty', 'median', 'centroid')) {
@@ -129,16 +162,21 @@ ref_pacs <- function(dat,
     }
     # Generate null data
     null_dat <- switch(ref_method, 
-      'svd' = {
+      'pc_norm' = {
         pca <- prcomp(t(dat))
-        ranges <- apply(pca$x, 2, range)
-        sim_dat <- matrix(runif(n^2, min = ranges[1], max = ranges[2]),
+        sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = pca$sdev),
                           nrow = n, ncol = n, byrow = TRUE)
-        t(sim %*% t(pca$rotation)) + pca$center
+        t(tcrossprod(sim_dat, pca$rotation)) + pca$center
+      }, 'pc_unif' = {
+        pca <- prcomp(t(dat))
+        ranges <- apply(pca$x, 2L, range)
+        sim_dat <- matrix(runif(n^2L, min = ranges[1], max = ranges[2]),
+                          nrow = n, ncol = n, byrow = TRUE)
+        t(tcrossprod(sim_dat, pca$rotation)) + pca$center
       }, 'cholesky' = {
-        cd <- chol(as.matrix(nearPD(cov(t(mydata)))$dat))
-        sim_dat <- matrix(rnorm(n * p), nrow = n, ncol = p)
-        t(sim_dat %*% cd)
+        cd <- chol(as.matrix(nearPD(cov(t(dat)))$mat))
+        sim_dat <- matrix(rnorm(p * n), nrow = p, ncol = n)
+        t(crossprod(sim_dat, cd))
       }, 'range' = {
         ranges <- apply(dat, 1, range)
         matrix(runif(n * p, min = ranges[1], max = ranges[2]), 
@@ -185,4 +223,7 @@ ref_pacs <- function(dat,
   return(null_pacs)
     
 }
-  
+
+
+
+

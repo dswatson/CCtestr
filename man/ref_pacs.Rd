@@ -4,7 +4,7 @@
 \alias{ref_pacs}
 \title{Generate Reference PAC Scores}
 \usage{
-ref_pacs(dat, max_k = 3, ref_method = "svd", B = 100, reps = 100,
+ref_pacs(dat, max_k = 3, ref_method = "pc_norm", B = 100, reps = 100,
   distance = "euclidean", cluster_alg = "hclust",
   hclust_method = "average", p_item = 0.8, p_feature = 1,
   wts_item = NULL, wts_feature = NULL, pac_window = c(0.1, 0.9),
@@ -17,7 +17,8 @@ normalized prior to analysis.}
 \item{max_k}{Maximum cluster number to evaluate.}
 
 \item{ref_method}{How should null data be generated? Options include \code{
-svd}, \code{cholesky}, \code{range}, and \code{permute}.}
+pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
+permute}. See Details.}
 
 \item{B}{Number of null datasets to generate.}
 
@@ -66,13 +67,44 @@ sample cluster structure. The expected value of \emph{k} for these datasets
 is therefore 1, and PAC scores for each \emph{k} form a null distribution 
 that tends toward normality as \emph{B} increases. 
 
-Just as reference PAC distributions are the theoretical core of the M3C 
+\code{ref_pacs} currently supports five methods for generating null datasets 
+from a given input matrix: 
+
+\itemize{
+  \item \code{"pc_norm"} simulates the principal components by taking random 
+    draws from a normal distribution with variance equal to the true 
+    eigenvalues. Data are subsequently backtransformed to their original 
+    dimensions by cross-multiplication with the true eigenvector matrix.
+  \item \code{"pc_unif"} simulates the principal components by taking random 
+    draws from a uniform distribution with ranges equal to those of the true 
+    principal components. Data are subsequently backtransformed to their 
+    original dimensions by cross-multiplication with the true eigenvector 
+    matrix. 
+  \item \code{"cholesky"} simulates random Gaussian noise around the Cholesky
+    decomposition of the feature-wise covariance matrix's nearest positive
+    definite approximation.
+  \item \code{"range"} selects random values uniformly from each feature's 
+    observed range. 
+  \item \code{"permute"} shuffles the values of each feature.
+}
+
+The first three options use different forms of matrix decomposition to 
+preserve the feature-wise covariance while scrambling the item-wise 
+covariance. \code{"pc_norm"} tends to generate the most realistic null data, 
+while \code{"pc_unif"} is more likely to guarantee a true \emph{k} of 1. Both 
+methods are fast and stable when features outnumber items. When items 
+outnumber features, \code{ref_method} defaults to \code{"cholesky"}, which 
+takes longer to compute, but is better suited for such cases. The final two 
+options are included for convenience, but do not preserve featurewise 
+covariance, which may bias results. 
+
+Just as reference PAC distributions are the theoretical core of the CCtestr 
 approach to cluster validation, \code{ref_pacs} is the computational core 
 of the \code{CCtestr} package. This function can take some time to execute, 
 and should ideally be run in parallel, especially with large datasets.
 }
 \examples{
 mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-rp <- ref_pacs(mat, ref_method = "svd")
+rp <- ref_pacs(mat, ref_method = "pc_norm")
 
 }
