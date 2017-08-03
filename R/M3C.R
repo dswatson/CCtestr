@@ -9,7 +9,8 @@
 #'   \code{FALSE}, function implements the traditional consensus cluster
 #'   algorithm.
 #' @param ref_method How should null data be generated? Options include \code{
-#'   svd}, \code{cholesky}, \code{range}, and \code{permute}. See Details.
+#'   "pc_norm"}, \code{"pc_unif"}, \code{"cholesky"}, \code{range}, and \code{
+#'   permute}. See Details.
 #' @param B Number of null datasets to generate.
 #' @param reps Number of subsamples to draw for consensus clustering.
 #' @param distance Distance metric for clustering. Supports all methods
@@ -26,9 +27,9 @@
 #' @param wts_item Optional vector of item weights.
 #' @param wts_feature Optional vector of feature weights.
 #' @param pac_window Lower and upper bounds for the consensus index sub-interval
-#'   over which to calculate the PAC. Must be on (0, 1).
+#'   over which to calculate the PAC. Must be on (0, 1). See Details.
 #' @param p_adj Optional method for \emph{p}-value adjustment. Supports all
-#'   options available in \code{\link[stats]{p_adjust}}.
+#'   options available in \code{\link[stats]{p.adjust}}.
 #' @param seed Optional seed for reproducibility.
 #' @param parallel If a parallel backend is loaded and available, should the 
 #'   function use it? Highly advisable if hardware permits. 
@@ -42,16 +43,36 @@
 #' PAC scores for each cluster number \emph{k} are tested against their
 #' empirically estimated null distribution.
 #'
-#' \code{M3C} currently supports four methods for generating null datasets from
-#' a given input matrix. \code{svd} and \code{cholesky} use different forms of 
-#' matrix decomposition to preserve genewise covariance while scrambling 
-#' samplewise covariance. The former option is faster, while the latter is 
-#' preferable when sample size exceeds gene count. When \code{
-#' ref_method = "range"}, expression values are drawn from uniform distributions
-#' with minima and maxima set to each gene's observed minimum and maximum. When
-#' \code{ref_method = "permute"}, each row's values are randomly shuffled. These
-#' latter two methods do not preserve genewise covariance, which may bias
-#' results.
+#' \code{M3C} currently supports five methods for generating null datasets from
+#' a given input matrix: 
+#' 
+#' \itemize{
+#'   \item \code{"pc_norm"} simulates the principal components by taking random 
+#'     draws from a normal distribution with variance equal to the true 
+#'     eigenvalues. Data are subsequently backtransformed to their original 
+#'     dimensions by cross-multiplication with the true eigenvector matrix.
+#'   \item \code{"pc_unif"} simulates the principal components by taking random 
+#'     draws from a uniform distribution with ranges equal to those of the true 
+#'     principal components. Data are subsequently backtransformed to their 
+#'     original dimensions by cross-multiplication with the true eigenvector 
+#'     matrix. 
+#'   \item \code{"cholesky"} simulates random Gaussian noise around the Cholesky
+#'     decomposition of the feature-wise covariance matrix's nearest positive
+#'     definite approximation.
+#'   \item \code{"range"} selects random values uniformly from each feature's 
+#'     observed range. 
+#'   \item \code{"permute"} shuffles the values of each feature.
+#' }
+#' 
+#' The first three options use different forms of matrix decomposition to 
+#' preserve the feature-wise covariance while scrambling the item-wise 
+#' covariance. \code{"pc_norm"} tends to generate the most realistic null data, 
+#' while \code{"pc_unif"} is more likely to guarantee a true \emph{k} of 1. Both 
+#' methods are fast and stable when features outnumber items. When items 
+#' outnumber features, \code{ref_method} defaults to \code{"cholesky"}, which 
+#' takes longer to compute, but is better suited for such cases. The final two 
+#' options are included for convenience, but do not preserve featurewise 
+#' covariance, which may bias results. 
 #'
 #' PAC stands for proportion of ambiguous clustering. To calculate the PAC for a
 #' given cluster number \emph{k}, we first compute the consensus matrix via
@@ -64,22 +85,17 @@
 #'
 #' @return A list with \code{max_k} elements. If \code{null = TRUE}, then
 #' the first item is a results data frame with columns for cluster number \emph{
-#' k}, observed PAC score, expected PAC score, \emph{z}-statistic, and
-#' \emph{p}-value. Standard errors are also returned, though may be replaced by
-#' confidence intervals if \code{CI} is non-\code{NULL}. Adjusted \emph{
-#' p}-values are also returned if \code{p_adj} is non-\code{NULL}.
+#' k}, observed PAC score, expected PAC score, \emph{z}-stability, standard 
+#' error, and \emph{p}-value. Adjusted \emph{p}-values are also returned if 
+#' \code{p_adj} is non-\code{NULL}.
 #'
 #' If \code{null = FALSE}, then the first item is a results data frame
 #' with columns for cluster number \emph{k} and PAC score.
 #'
-#' Items two through \code{max_k} are lists corresponding to the unique values 
-#' of \emph{k}, each containing the following three elements: the consensus 
-#' matrix, tree, and cluster assignments for that \emph{k} as determined by 
-#' consensus clustering.
-#'
-#' Plots are also optionally returned or saved. If \code{null = TRUE},
-#' then the figure depicts \emph{z}-scores for all \emph{k}; if \code{
-#' null = FALSE}, the figure depicts PAC scores for all \emph{k}.
+#' Elements two through \code{max_k} are lists corresponding to the unique 
+#' values of \emph{k}, each containing the following three elements: the 
+#' consensus matrix, tree, and cluster assignments for that \emph{k}, as 
+#' determined by consensus clustering.
 #'
 #' @references
 #' Monti, S., Tamayo, P., Mesirov, J., & Golub, T. (2003).
@@ -102,7 +118,6 @@
 #'
 #' @export
 #' @importFrom fastcluster hclust
-#' @importFrom Matrix nearPD
 #' @importFrom matrixStats colMeans2 colSds
 #' @import dplyr
 #'
@@ -110,7 +125,7 @@
 M3C <- function(dat,
                 max_k = 3,
                 null = TRUE,
-                ref_method = 'svd',
+                ref_method = 'pc_norm',
                 B = 100,
                 reps = 100,
                 distance = 'euclidean',
@@ -138,7 +153,7 @@ M3C <- function(dat,
   n <- ncol(dat)
   p <- nrow(dat)
   if (n > p && null && ref_method != 'cholesky') {
-    warning('Sample size (columns) exceeds feature total (rows). ',
+    warning('Items (columns) exceed features (rows). ',
             'Switching to Cholesky decomposition method...')
     ref_method <- 'cholesky'
   }
@@ -151,7 +166,7 @@ M3C <- function(dat,
     if (!p_adj %in% c('holm', 'hochberg', 'hommel',
                       'bonferroni', 'BH', 'BY', 'fdr')) {
       stop('p_adj must be one of "holm", "hochberg", "hommel", "bonferroni", ',
-           '"BH", "BY", or "fdr". See ?p_adjust.')
+           '"BH", "BY", or "fdr". See ?p.adjust.')
     }
   }
 
@@ -191,11 +206,11 @@ M3C <- function(dat,
       rename(PAC_observed = PAC) %>%
       mutate(PAC_expected = colMeans2(ref_pacs_mat),
              PAC_sim_sigma = colSds(ref_pacs_mat)) %>%
-      mutate(z_stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
+      mutate(z.stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
       mutate(SE = PAC_sim_sigma * sqrt(1L + 1L/B),
-             p.value = pnorm(-z_stability))
+             p.value = pnorm(-z.stability))
     if (!is.null(p_adj)) {
-      res <- res %>% mutate(adj.p = p.adjust(p.value, method = p_adj))
+      res <- res %>% mutate(adj_p.value = p.adjust(p.value, method = p_adj))
     }
     res <- res %>% select(-PAC_sim_sigma)
     out[[1]] <- res
