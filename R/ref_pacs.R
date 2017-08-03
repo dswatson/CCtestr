@@ -164,8 +164,8 @@ ref_pacs <- function(dat,
   if (parallel) {
     # Execute in parallel
     null_pacs <- foreach(b = seq_len(B), .combine = rbind) %dopar%
-      pacs_b(b, dat = dat, max_k = max_k, pca = pca, cd = cd, 
-             ref_method = ref_method, B = B, reps = reps, distance = distance, 
+      pacs_b(b, dat = dat, max_k = max_k, ref_method = ref_method, 
+             B = B, reps = reps, distance = distance, 
              cluster_alg = cluster_alg, hclust_method = hclust_method, 
              p_item = p_item, p_feature = p_feature, 
              wts_item = wts_item, wts_feature = wts_feature, 
@@ -173,8 +173,8 @@ ref_pacs <- function(dat,
   } else {
     # Execute in serial
     null_pacs <- t(sapply(seq_len(B), function(b) {
-      pacs_b(b, dat = dat, max_k = max_k, pca = pca, cd = cd, 
-             ref_method = ref_method, B = B, reps = reps, distance = distance, 
+      pacs_b(b, dat = dat, max_k = max_k, ref_method = ref_method, 
+             B = B, reps = reps, distance = distance, 
              cluster_alg = cluster_alg, hclust_method = hclust_method, 
              p_item = p_item, p_feature = p_feature, 
              wts_item = wts_item, wts_feature = wts_feature, 
