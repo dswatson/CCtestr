@@ -156,14 +156,14 @@ consensus <- function(dat,
           }
           assignments[i, samples] <- clusters
         }
-        consensus_mat <- matrix(0L, nrow = n, ncol = n)
+        consensus_mat <- matrix(nrow = n, ncol = n)
         for (i in 2:n) {
           for (j in 1:(i - 1)) {
             tmp <- na.omit(assignments[, c(i, j)])
             consensus_mat[i, j] <- sum(tmp[, 1] == tmp[, 2]) / nrow(tmp)
           }
         }
-        consensus_mat <- pmax(consensus_mat, t(consensus_mat))
+        consensus_mat <- pmax(consensus_mat, t(consensus_mat), na.rm = TRUE)
         diag(consensus_mat) <- 1L
         return(consensus_mat)
       }
