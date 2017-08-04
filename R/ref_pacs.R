@@ -5,11 +5,13 @@
 #'
 #' @param dat Probe by sample omic data matrix. Data should be filtered and
 #'   normalized prior to analysis.
-#' @param max_k Maximum cluster number to evaluate.
+#' @param max_k Integer specifying the maximum cluster number to evaluate. 
+#'   Default is \code{max_k = 3}, but a more reasonable rule of thumb is the 
+#'   square root of the sample size.
 #' @param ref_method How should null data be generated? Options include \code{
 #'   pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
 #'   permute}. See Details.
-#' @param B Number of null datasets to generate.
+#' @param B Number of reference datasets to generate.
 #' @param reps Number of subsamples to draw for consensus clustering.
 #' @param distance Distance metric for clustering. Supports all methods
 #'   available in \code{\link[stats]{dist}} and \code{\link[vegan]{vegdist}},
@@ -17,8 +19,8 @@
 #' @param cluster_alg Clustering algorithm to implement. Currently supports
 #'   hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 #'   \emph{k}-medoids (\code{"pam"}).
-#' @param hclust_method Method to use if \code{cluster_alg = "hclust"}. See \code{
-#'   \link[stats]{hclust}}.
+#' @param hclust_method Method to use if \code{cluster_alg = "hclust"}. See 
+#'   \code{\link[stats]{hclust}}.
 #' @param p_item Proportion of items to include in each subsample.
 #' @param p_feature Proportion of features to include in each subsample.
 #' @param wts_item Optional vector of item weights.
@@ -43,30 +45,31 @@
 #' \itemize{
 #'   \item \code{"pc_norm"} simulates the principal components by taking random 
 #'     draws from a normal distribution with variance equal to the true 
-#'     eigenvalues. Data are subsequently backtransformed to their original 
+#'     eigenvalues. Data are subsequently back-transformed to their original 
 #'     dimensions by cross-multiplication with the true eigenvector matrix.
 #'   \item \code{"pc_unif"} simulates the principal components by taking random 
 #'     draws from a uniform distribution with ranges equal to those of the true 
-#'     principal components. Data are subsequently backtransformed to their 
+#'     principal components. Data are subsequently back-transformed to their 
 #'     original dimensions by cross-multiplication with the true eigenvector 
 #'     matrix. 
-#'   \item \code{"cholesky"} simulates random Gaussian noise around the Cholesky
-#'     decomposition of the feature-wise covariance matrix's nearest positive
-#'     definite approximation.
+#'   \item \code{"cholesky"} simulates random Gaussian noise around the nearest
+#'     positive-definite approximation to \code{dat}'s feature-wise covariance 
+#'     matrix.
 #'   \item \code{"range"} selects random values uniformly from each feature's 
 #'     observed range. 
-#'   \item \code{"permute"} shuffles the values of each feature.
+#'   \item \code{"permute"} shuffles each feature's observed values.
 #' }
 #' 
-#' The first three options use different forms of matrix decomposition to 
-#' preserve the feature-wise covariance while scrambling the item-wise 
-#' covariance. \code{"pc_norm"} tends to generate the most realistic null data, 
-#' while \code{"pc_unif"} is more likely to guarantee a true \emph{k} of 1. Both 
-#' methods are fast and stable when features outnumber items. When items 
-#' outnumber features, \code{ref_method} defaults to \code{"cholesky"}, which 
-#' takes longer to compute, but is better suited for such cases. The final two 
-#' options are included for convenience, but do not preserve featurewise 
-#' covariance, which may bias results. 
+#' The first two options use the data's true eigenvectors to preserve 
+#' feature-wise covariance while scrambling sample-wise covariance. \code{
+#' "pc_norm"} tends to generate the most realistic null data, while Monte Carlo 
+#' replicates generated via \code{"pc_unif"} converge more quickly to a true 
+#' \emph{k} of 1. Both methods are fast and stable when features outnumber 
+#' samples. When samples outnumber features, \code{ref_method} defaults to 
+#' \code{"cholesky"}, which takes longer to compute, but is better suited for 
+#' such cases. \code{"range"} and \code{"permute"} are included for convenience,
+#' but are not recommended since they do not preserve feature-wise covariance,
+#' which may bias results. 
 #' 
 #' Just as reference PAC distributions are the theoretical core of the CCtestr 
 #' approach to cluster validation, \code{ref_pacs} is the computational core 
@@ -82,6 +85,7 @@
 #'
 #' @export
 #' @importFrom Matrix nearPD
+#' @importFrom matrixStats rowMeans2
 #' 
 
 ref_pacs <- function(dat, 
@@ -109,7 +113,9 @@ ref_pacs <- function(dat,
   }
   dat <- as.matrix(dat)
   sample_n <- round(p_item * ncol(dat))
-  if (max_k > sample_n) {
+  if (max_k != round(max_k)) {
+    stop('max_k must be an integer.')
+  } else if (max_k > sample_n) {
     stop('max_k exceeds subsample size.')
   }
   if (!ref_method %in% c('pc_norm', 'pc_unif', 'cholesky', 'range', 'permute')) {
@@ -163,16 +169,20 @@ ref_pacs <- function(dat,
     # Generate null data
     null_dat <- switch(ref_method, 
       'pc_norm' = {
-        pca <- prcomp(t(dat))
-        sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = pca$sdev),
+        row_means <- rowMeans2(dat)
+        svd_dat <- svd(t(dat - row_means))
+        sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = svd_dat$d),
                           nrow = n, ncol = n, byrow = TRUE)
-        t(tcrossprod(sim_dat, pca$rotation)) + pca$center
+        t(tcrossprod(sim_dat, svd_dat$v)) + row_means
+        return(null)
       }, 'pc_unif' = {
-        pca <- prcomp(t(dat))
-        ranges <- apply(pca$x, 2L, range)
+        row_means <- rowMeans2(dat)
+        dat_ct <- t(dat - row_means)
+        V <- svd(dat_ct)$v
+        ranges <- apply(dat_ct %*% V, 2L, range)
         sim_dat <- matrix(runif(n^2L, min = ranges[1], max = ranges[2]),
                           nrow = n, ncol = n, byrow = TRUE)
-        t(tcrossprod(sim_dat, pca$rotation)) + pca$center
+        t(tcrossprod(sim_dat, V)) + row_means
       }, 'cholesky' = {
         cd <- chol(as.matrix(nearPD(cov(t(dat)))$mat))
         sim_dat <- matrix(rnorm(p * n), nrow = p, ncol = n)

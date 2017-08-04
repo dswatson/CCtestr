@@ -14,13 +14,15 @@ ref_pacs(dat, max_k = 3, ref_method = "pc_norm", B = 100, reps = 100,
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
 normalized prior to analysis.}
 
-\item{max_k}{Maximum cluster number to evaluate.}
+\item{max_k}{Integer specifying the maximum cluster number to evaluate. 
+Default is \code{max_k = 3}, but a more reasonable rule of thumb is the 
+square root of the sample size.}
 
 \item{ref_method}{How should null data be generated? Options include \code{
 pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
 permute}. See Details.}
 
-\item{B}{Number of null datasets to generate.}
+\item{B}{Number of reference datasets to generate.}
 
 \item{reps}{Number of subsamples to draw for consensus clustering.}
 
@@ -32,8 +34,8 @@ as well as those implemented in the \code{bioDist} package.}
 hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 \emph{k}-medoids (\code{"pam"}).}
 
-\item{hclust_method}{Method to use if \code{cluster_alg = "hclust"}. See \code{
-\link[stats]{hclust}}.}
+\item{hclust_method}{Method to use if \code{cluster_alg = "hclust"}. See 
+\code{\link[stats]{hclust}}.}
 
 \item{p_item}{Proportion of items to include in each subsample.}
 
@@ -73,30 +75,31 @@ from a given input matrix:
 \itemize{
   \item \code{"pc_norm"} simulates the principal components by taking random 
     draws from a normal distribution with variance equal to the true 
-    eigenvalues. Data are subsequently backtransformed to their original 
+    eigenvalues. Data are subsequently back-transformed to their original 
     dimensions by cross-multiplication with the true eigenvector matrix.
   \item \code{"pc_unif"} simulates the principal components by taking random 
     draws from a uniform distribution with ranges equal to those of the true 
-    principal components. Data are subsequently backtransformed to their 
+    principal components. Data are subsequently back-transformed to their 
     original dimensions by cross-multiplication with the true eigenvector 
     matrix. 
-  \item \code{"cholesky"} simulates random Gaussian noise around the Cholesky
-    decomposition of the feature-wise covariance matrix's nearest positive
-    definite approximation.
+  \item \code{"cholesky"} simulates random Gaussian noise around the nearest
+    positive-definite approximation to \code{dat}'s feature-wise covariance 
+    matrix.
   \item \code{"range"} selects random values uniformly from each feature's 
     observed range. 
-  \item \code{"permute"} shuffles the values of each feature.
+  \item \code{"permute"} shuffles each feature's observed values.
 }
 
-The first three options use different forms of matrix decomposition to 
-preserve the feature-wise covariance while scrambling the item-wise 
-covariance. \code{"pc_norm"} tends to generate the most realistic null data, 
-while \code{"pc_unif"} is more likely to guarantee a true \emph{k} of 1. Both 
-methods are fast and stable when features outnumber items. When items 
-outnumber features, \code{ref_method} defaults to \code{"cholesky"}, which 
-takes longer to compute, but is better suited for such cases. The final two 
-options are included for convenience, but do not preserve featurewise 
-covariance, which may bias results. 
+The first two options use the data's true eigenvectors to preserve 
+feature-wise covariance while scrambling sample-wise covariance. \code{
+"pc_norm"} tends to generate the most realistic null data, while Monte Carlo 
+replicates generated via \code{"pc_unif"} converge more quickly to a true 
+\emph{k} of 1. Both methods are fast and stable when features outnumber 
+samples. When samples outnumber features, \code{ref_method} defaults to 
+\code{"cholesky"}, which takes longer to compute, but is better suited for 
+such cases. \code{"range"} and \code{"permute"} are included for convenience,
+but are not recommended since they do not preserve feature-wise covariance,
+which may bias results. 
 
 Just as reference PAC distributions are the theoretical core of the CCtestr 
 approach to cluster validation, \code{ref_pacs} is the computational core 
