@@ -13,7 +13,9 @@ consensus(dat, max_k = 3, reps = 100, distance = "euclidean",
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
 normalized prior to analysis.}
 
-\item{max_k}{Maximum cluster number to evaluate.}
+\item{max_k}{Integer specifying the maximum cluster number to evaluate. 
+Default is \code{max_k = 3}, but a more reasonable rule of thumb is the 
+square root of the sample size.}
 
 \item{reps}{Number of subsamples to draw.}
 

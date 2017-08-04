@@ -4,7 +4,9 @@
 #'
 #' @param dat Probe by sample omic data matrix. Data should be filtered and
 #'   normalized prior to analysis.
-#' @param max_k Maximum cluster number to evaluate.
+#' @param max_k Integer specifying the maximum cluster number to evaluate. 
+#'   Default is \code{max_k = 3}, but a more reasonable rule of thumb is the 
+#'   square root of the sample size.
 #' @param reps Number of subsamples to draw.
 #' @param distance Distance metric for clustering. Supports all methods
 #'   available in \code{\link[stats]{dist}} and \code{\link[vegan]{vegdist}},
@@ -82,7 +84,9 @@ consensus <- function(dat,
     }
     dat <- as.matrix(dat)
     sample_n <- round(p_item * ncol(dat))
-    if (max_k > sample_n) {
+    if (max_k != round(max_k)) {
+      stop('max_k must be an integer.')
+    } else if (max_k > sample_n) {
       stop('max_k exceeds subsample size.')
     }
     if (!hclust_method %in% c('ward.D', 'ward.D2', 'single', 'complete',
