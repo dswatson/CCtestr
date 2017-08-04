@@ -174,7 +174,6 @@ ref_pacs <- function(dat,
         sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = svd_dat$d),
                           nrow = n, ncol = n, byrow = TRUE)
         t(tcrossprod(sim_dat, svd_dat$v)) + row_means
-        return(null)
       }, 'pc_unif' = {
         row_means <- rowMeans2(dat)
         dat_ct <- t(dat - row_means)
