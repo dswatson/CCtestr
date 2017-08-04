@@ -4,8 +4,8 @@
 \alias{M3C}
 \title{Monte Carlo Consensus Clustering}
 \usage{
-M3C(dat, max_k = 3, null = TRUE, ref_method = "pc_norm", B = 100,
-  reps = 100, distance = "euclidean", cluster_alg = "hclust",
+M3C(dat, max_k = 3, ref_method = "pc_norm", B = 100, reps = 100,
+  distance = "euclidean", cluster_alg = "hclust",
   hclust_method = "average", p_item = 0.8, p_feature = 1,
   wts_item = NULL, wts_feature = NULL, pac_window = c(0.1, 0.9),
   p_adj = NULL, seed = NULL, parallel = TRUE)
@@ -17,10 +17,6 @@ normalized prior to analysis.}
 \item{max_k}{Integer specifying the maximum cluster number to evaluate. 
 Default is \code{max_k = 3}, but a more reasonable rule of thumb is the 
 square root of the sample size.}
-
-\item{null}{Generate null distribution for statistical comparison? If
-\code{FALSE}, function implements the traditional consensus cluster
-algorithm.}
 
 \item{ref_method}{How should null data be generated? Options include \code{
 pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
@@ -88,7 +84,7 @@ reference. The function then consensus clusters the actual input data, and
 PAC scores for each cluster number \emph{k} are tested against their
 empirically estimated null distribution.
 
-\code{M3C} currently supports four methods for generating null datasets from
+\code{M3C} currently supports five methods for generating null datasets from
 a given input matrix: 
 
 \itemize{

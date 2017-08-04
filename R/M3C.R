@@ -7,9 +7,6 @@
 #' @param max_k Integer specifying the maximum cluster number to evaluate. 
 #'   Default is \code{max_k = 3}, but a more reasonable rule of thumb is the 
 #'   square root of the sample size.
-#' @param null Generate null distribution for statistical comparison? If
-#'   \code{FALSE}, function implements the traditional consensus cluster
-#'   algorithm.
 #' @param ref_method How should null data be generated? Options include \code{
 #'   pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
 #'   permute}. See Details.
@@ -45,7 +42,7 @@
 #' PAC scores for each cluster number \emph{k} are tested against their
 #' empirically estimated null distribution.
 #'
-#' \code{M3C} currently supports four methods for generating null datasets from
+#' \code{M3C} currently supports five methods for generating null datasets from
 #' a given input matrix: 
 #' 
 #' \itemize{
@@ -127,7 +124,6 @@
 
 M3C <- function(dat,
                 max_k = 3,
-                null = TRUE,
                 ref_method = 'pc_norm',
                 B = 100,
                 reps = 100,
@@ -176,16 +172,14 @@ M3C <- function(dat,
 
   ### PART I: GENERATE REFERENCE PAC SCORES ###
 
-  if (null) {
-    message('Simulating null distributions...')
-    ref_pacs_mat <- ref_pacs(dat, max_k = max_k, ref_method = ref_method, B = B, 
-                             reps = reps, distance = distance, 
-                             cluster_alg = cluster_alg, hclust_method = hclust_method, 
-                             p_item = p_item, p_feature = p_feature, 
-                             wts_item = wts_item, wts_feature = wts_feature, 
-                             pac_window = pac_window, seed = seed, parallel = parallel)
-    message('Finished simulating null distributions.')
-  }
+  message('Simulating null distributions...')
+  ref_pacs_mat <- ref_pacs(dat, max_k = max_k, ref_method = ref_method, B = B, 
+                           reps = reps, distance = distance, 
+                           cluster_alg = cluster_alg, hclust_method = hclust_method, 
+                           p_item = p_item, p_feature = p_feature, 
+                           wts_item = wts_item, wts_feature = wts_feature, 
+                           pac_window = pac_window, seed = seed, parallel = parallel)
+  message('Finished simulating null distributions.')
 
 
   ### PART II: CALCULATE TRUE PAC SCORES ###
@@ -204,27 +198,22 @@ M3C <- function(dat,
   ### PART III: COMPARE RESULTS ###
 
   out <- list()
-  if (null) {
-    # Results table
-    res <- pac %>%
-      rename(PAC_observed = PAC) %>%
-      mutate(PAC_expected = colMeans2(ref_pacs_mat),
-             PAC_sim_sigma = colSds(ref_pacs_mat)) %>%
-      mutate(z.stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
-      mutate(SE = PAC_sim_sigma * sqrt(1L + 1L/B),
-             p.value = pnorm(-z.stability))
-    if (!is.null(p_adj)) {
-      res <- res %>% mutate(adj_p.value = p.adjust(p.value, method = p_adj))
-    }
-    res <- res %>% select(-PAC_sim_sigma)
-    out[[1]] <- res
-  } else {
-    out[[1]] <- pac
+  res <- pac %>%
+    rename(PAC_observed = PAC) %>%
+    mutate(PAC_expected = colMeans2(ref_pacs_mat),
+           PAC_sim_sigma = colSds(ref_pacs_mat)) %>%
+    mutate(z.stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
+    mutate(SE = PAC_sim_sigma * sqrt(1L + 1L/B),
+           p.value = pnorm(-z.stability))
+  if (!is.null(p_adj)) {
+    res <- res %>% mutate(adj_p.value = p.adjust(p.value, method = p_adj))
   }
+  res <- res %>% select(-PAC_sim_sigma)
+  out[[1]] <- res
 
   # Export
   for (k in 2:max_k) {
-    hc <- fastcluster::hclust(as.dist(1L - cm[[k]]), method = finalLinkage)
+    hc <- fastcluster::hclust(as.dist(1L - cm[[k]]), method = hclust_method)
     ct <- cutree(hc, k)
     out[[k]] <- list('consensusMatrix' = cm[[k]],
                      'consensusTree' = hc,
