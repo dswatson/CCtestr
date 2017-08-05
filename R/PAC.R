@@ -54,12 +54,12 @@ PAC <- function(consensus_mats,
                 plot = FALSE) {
 
   # Preliminaries
-  maxK <- length(consensus_mats)
+  max_k <- length(consensus_mats)
   if (!is.list(consensus_mats)) {
     stop('consensus_mats must be a list object containing consensus matrices.')
   }
   if (any(names(consensus_mats) == 'consensusMatrix')) {
-    consensus_mats <- lapply(seq_len(maxK), function(k) {
+    consensus_mats <- lapply(seq_len(max_k), function(k) {
       if (k == 1L) {
         return(NULL)
       } else {
@@ -76,7 +76,7 @@ PAC <- function(consensus_mats,
   
   # Calculate PAC
   suppressWarnings(
-    pacs <- expand.grid(k = 2:maxK,
+    pacs <- expand.grid(k = 2:max_k,
                         Idx = pac_window) %>%
       rowwise(.) %>%
       mutate(CDF = ecdf(consensus_mats[[k]] %>% keep(lower.tri(.)))(Idx),
