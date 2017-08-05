@@ -200,13 +200,15 @@ cc_test <- function(dat,
   out <- list()
   res <- pac %>%
     rename(PAC_observed = PAC) %>%
-    mutate(PAC_expected = colMeans2(ref_pacs_mat)) %>%
+    mutate(PAC_expected = colMeans2(ref_pacs_mat),
+           PAC_sim_sigma = colSds(ref_pacs_mat)) %>%
     mutate(z.stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
-    mutate(SE = colSds(ref_pacs_mat) * sqrt(1L + 1L/B),
+    mutate(SE = PAC_sim_sigma * sqrt(1L + 1L/B),
            p.value = pnorm(-z.stability))
   if (!is.null(p_adj)) {
     res <- res %>% mutate(adj_p.value = p.adjust(p.value, method = p_adj))
   }
+  res <- res %>% select(-PAC_sim_sigma)
   out[[1]] <- res
 
   # Export
