@@ -1,4 +1,4 @@
-#' Monte Carlo Consensus Clustering
+#' Consensus Clustering Test
 #'
 #' This function implements the Monte Carlo consensus clustering algorithm.
 #'
@@ -8,8 +8,8 @@
 #'   Default is \code{max_k = 3}, but a more reasonable rule of thumb is the 
 #'   square root of the sample size.
 #' @param ref_method How should null data be generated? Options include \code{
-#'   pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
-#'   permute}. See Details.
+#'   "pc_norm"}, \code{"pc_unif"}, \code{"cholesky"}, \code{"range"}, and \code{
+#'   "permute"}. See Details.
 #' @param B Number of reference datasets to generate.
 #' @param reps Number of subsamples to draw for consensus clustering.
 #' @param distance Distance metric for clustering. Supports all methods
@@ -34,16 +34,16 @@
 #'   function use it? Highly advisable if hardware permits. 
 #'
 #' @details
-#' M3C is a hypothesis testing framework for consensus clustering. It takes an
-#' input matrix \code{dat}, and generates \code{B} null datasets with similar
-#' properties but no sample-wise cluster structure. The consensus cluster
-#' algorithm is then run on each simulated matrix, with PAC scores stored for
-#' reference. The function then consensus clusters the actual input data, and
-#' PAC scores for each cluster number \emph{k} are tested against their
-#' empirically estimated null distribution.
+#' \code{cc_test} provides a hypothesis testing framework for consensus 
+#' clustering. It takes an input matrix \code{dat}, and generates \code{B} null 
+#' datasets with similar properties but no sample-wise cluster structure. The 
+#' consensus cluster algorithm is then run on each simulated matrix, with PAC 
+#' scores stored for reference. The function then consensus clusters the actual 
+#' input data, and PAC scores for each cluster number \emph{k} are tested 
+#' against their empirically estimated null distribution.
 #'
-#' \code{M3C} currently supports five methods for generating null datasets from
-#' a given input matrix: 
+#' \code{cc_test} currently supports five methods for generating null datasets 
+#' from a given input matrix: 
 #' 
 #' \itemize{
 #'   \item \code{"pc_norm"} simulates the principal components by taking random 
@@ -111,7 +111,7 @@
 #'
 #' @examples
 #' mat <- matrix(rnorm(1000 * 12), nrow = 1000, ncol = 12)
-#' M3Cres <- M3C(mat)
+#' res <- cc_test(mat)
 #'
 #' @seealso
 #' \code{\link[ConsensusClusterPlus]{ConsensusClusterPlus}}
@@ -122,22 +122,22 @@
 #' @import dplyr
 #'
 
-M3C <- function(dat,
-                max_k = 3,
-                ref_method = 'pc_norm',
-                B = 100,
-                reps = 100,
-                distance = 'euclidean',
-                cluster_alg = 'hclust',
-                hclust_method = 'average',
-                p_item = 0.8,
-                p_feature = 1,
-                wts_item = NULL,
-                wts_feature = NULL,
-                pac_window = c(0.1, 0.9),
-                p_adj = NULL,
-                seed = NULL,
-                parallel = TRUE) {
+cc_test <- function(dat,
+                    max_k = 3,
+                    ref_method = 'pc_norm',
+                    B = 100,
+                    reps = 100,
+                    distance = 'euclidean',
+                    cluster_alg = 'hclust',
+                    hclust_method = 'average',
+                    p_item = 0.8,
+                    p_feature = 1,
+                    wts_item = NULL,
+                    wts_feature = NULL,
+                    pac_window = c(0.1, 0.9),
+                    p_adj = NULL,
+                    seed = NULL,
+                    parallel = TRUE) {
 
 
   ### PRELIMINARIES ###
@@ -152,7 +152,7 @@ M3C <- function(dat,
   n <- ncol(dat)
   p <- nrow(dat)
   if (n > p && null && ref_method != 'cholesky') {
-    warning('Items (columns) exceed features (rows). ',
+    warning('Items (columns) outnumber features (rows). ',
             'Switching to Cholesky decomposition method...')
     ref_method <- 'cholesky'
   }
@@ -200,15 +200,13 @@ M3C <- function(dat,
   out <- list()
   res <- pac %>%
     rename(PAC_observed = PAC) %>%
-    mutate(PAC_expected = colMeans2(ref_pacs_mat),
-           PAC_sim_sigma = colSds(ref_pacs_mat)) %>%
+    mutate(PAC_expected = colMeans2(ref_pacs_mat)) %>%
     mutate(z.stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
-    mutate(SE = PAC_sim_sigma * sqrt(1L + 1L/B),
+    mutate(SE = colSds(ref_pacs_mat) * sqrt(1L + 1L/B),
            p.value = pnorm(-z.stability))
   if (!is.null(p_adj)) {
     res <- res %>% mutate(adj_p.value = p.adjust(p.value, method = p_adj))
   }
-  res <- res %>% select(-PAC_sim_sigma)
   out[[1]] <- res
 
   # Export
