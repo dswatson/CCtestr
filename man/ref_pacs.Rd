@@ -19,8 +19,8 @@ Default is \code{max_k = 3}, but a more reasonable rule of thumb is the
 square root of the sample size.}
 
 \item{ref_method}{How should null data be generated? Options include \code{
-pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
-permute}. See Details.}
+"pc_norm"}, \code{"pc_unif"}, \code{"cholesky"}, \code{"range"}, and \code{
+"permute"}. See Details.}
 
 \item{B}{Number of reference datasets to generate.}
 

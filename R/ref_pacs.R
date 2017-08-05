@@ -9,8 +9,8 @@
 #'   Default is \code{max_k = 3}, but a more reasonable rule of thumb is the 
 #'   square root of the sample size.
 #' @param ref_method How should null data be generated? Options include \code{
-#'   pc_norm}, \code{pc_unif}, \code{cholesky}, \code{range}, and \code{
-#'   permute}. See Details.
+#'   "pc_norm"}, \code{"pc_unif"}, \code{"cholesky"}, \code{"range"}, and \code{
+#'   "permute"}. See Details.
 #' @param B Number of reference datasets to generate.
 #' @param reps Number of subsamples to draw for consensus clustering.
 #' @param distance Distance metric for clustering. Supports all methods
@@ -197,10 +197,10 @@ ref_pacs <- function(dat,
       }, 'pc_unif' = {
         sim_dat <- matrix(runif(n^2L, min = ranges[1], max = ranges[2]),
                           nrow = n, ncol = n, byrow = TRUE)
-        t(tcrossprod(sim_dat, V)) + row_means
+        t(tcrossprod(sim_dat, svd_dat$v)) + row_means
       }, 'cholesky' = {
         sim_dat <- matrix(rnorm(p * n), nrow = p, ncol = n)
-        t(crossprod(sim_dat, chol_dat))
+        t(crossprod(sim_dat, chol_mat))
       }, 'range' = {
         matrix(runif(n * p, min = ranges[1], max = ranges[2]), 
                nrow = p, ncol = n)
