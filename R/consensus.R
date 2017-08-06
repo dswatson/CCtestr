@@ -152,7 +152,7 @@ consensus <- function(dat,
             }
           }
           if (cluster_alg == 'kmeans') {
-            clusters <- kmeans(dat_i, k)$cluster
+            clusters <- kmeans(t(dat_i), k)$cluster
           } else if (cluster_alg == 'hclust') {
             clusters <- cutree(fastcluster::hclust(dm_i, method = hclust_method), k)
           } else if (cluster_alg == 'pam') {
@@ -204,7 +204,7 @@ consensus <- function(dat,
           clust_mats[[k]] <- matrix(0L, nrow = n, ncol = n)
         }
         if (cluster_alg == 'kmeans') {
-          clusters <- kmeans(dat_i, k)$cluster
+          clusters <- kmeans(t(dat_i), k)$cluster
         } else if (cluster_alg == 'hclust') {
           clusters <- cutree(fastcluster::hclust(dm_i, method = hclust_method), k)
         } else if (cluster_alg == 'pam') {
