@@ -94,8 +94,7 @@ PAC <- function(consensus_mats,
       geom_point(size = 3) +
       geom_line() +
       scale_x_continuous(breaks = seq(0, length(consensus_mats), 1)) +
-      labs(x = expression('Cluster Number'~italic(k)),
-           y = 'PAC Score', title = expression('PAC by'~italic(k))) +
+      labs(x = expression('Cluster Number'~italic(k))) +
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5))
     print(p)
