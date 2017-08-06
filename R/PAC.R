@@ -90,10 +90,14 @@ PAC <- function(consensus_mats,
   
   # Plot output
   if (plot) {
+    pacs <- pacs %>% 
+      mutate(Optimal = PAC == min(PAC))
     p <- ggplot(pacs, aes(k, PAC)) +
-      geom_point(size = 3) +
+      geom_point(aes(color = Optimal), size = 3) +
       geom_line() +
       scale_x_continuous(breaks = seq(0, length(consensus_mats), 1)) +
+      scale_color_manual(values = c('black', 'red')) + 
+      guides(color = guide_legend(reverse = TRUE)) +
       labs(x = expression('Cluster Number'~italic(k))) +
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5))
