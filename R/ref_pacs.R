@@ -180,7 +180,7 @@ ref_pacs <- function(dat,
       seed <- seed + b
     }
     # Generate null data
-    null_dat <- switch(ref_method, 
+    z <- switch(ref_method, 
       'pc_norm' = {
         sim_dat <- matrix(rnorm(n^2L, mean = 0L, sd = svd_dat$d),
                           nrow = n, ncol = n, byrow = TRUE)
@@ -196,14 +196,14 @@ ref_pacs <- function(dat,
         matrix(runif(n * p, min = ranges[1], max = ranges[2]), 
                nrow = p, ncol = n)
       }, 'permute' = {
-        null_dat <- matrix(nrow = p, ncol = n)
+        z <- matrix(nrow = p, ncol = n)
         for (probe in seq_len(p)) {
-          null_dat[probe, ] <- mat[probe, sample.int(n)]
+          z[probe, ] <- mat[probe, sample.int(n)]
         }
-        null_dat
+        z
       })
     # Generate consensus matrices
-    cm <- consensus(null_dat, max_k = max_k, reps = reps, distance = distance,
+    cm <- consensus(z, max_k = max_k, reps = reps, distance = distance,
                     cluster_alg = cluster_alg, hclust_method = hclust_method,
                     p_item = p_item, p_feature = p_feature,
                     wts_item = wts_item, wts_feature = wts_feature,
@@ -215,7 +215,7 @@ ref_pacs <- function(dat,
   
   if (parallel) {
     # Execute in parallel
-    null_pacs <- foreach(b = seq_len(B), .combine = rbind) %dopar%
+    null_distro <- foreach(b = seq_len(B), .combine = rbind) %dopar%
       pacs_b(b, dat = dat, max_k = max_k, ref_method = ref_method, 
              reps = reps, distance = distance, 
              cluster_alg = cluster_alg, hclust_method = hclust_method, 
@@ -224,7 +224,7 @@ ref_pacs <- function(dat,
              pac_window = pac_window, seed = seed)
   } else {
     # Execute in serial
-    null_pacs <- t(sapply(seq_len(B), function(b) {
+    null_distro <- t(sapply(seq_len(B), function(b) {
       pacs_b(b, dat = dat, max_k = max_k, ref_method = ref_method, 
              reps = reps, distance = distance, 
              cluster_alg = cluster_alg, hclust_method = hclust_method, 
@@ -233,8 +233,9 @@ ref_pacs <- function(dat,
              pac_window = pac_window, seed = seed)
     }))
   }
-  dimnames(null_pacs) <- list(paste0('b', seq_len(B)), paste0('k', 2:max_k))
-  return(null_pacs)
+  dimnames(null_distro) <- list(paste0('b', seq_len(B)), 
+                                paste0('k', 2:max_k))
+  return(null_distro)
     
 }
 
