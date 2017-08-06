@@ -163,23 +163,14 @@ ref_pacs <- function(dat,
     if (ref_method == 'pc_unif') {
       ranges <- apply(crossprod((dat - row_means), svd_dat$v), 2L, range)
     }
-  } else {
-    row_means <- svd_dat <- NULL
-  }
-  if (ref_method == 'cholesky') {
+  } else if (ref_method == 'cholesky') {
     chol_mat <- chol(as.matrix(nearPD(cov(t(dat)))$mat))
-  } else {
-    chol_mat <- NULL 
-  }
-  if (ref_method == 'range') {
+  } else if (ref_method == 'range') {
     ranges <- apply(dat, 1L, range)
-  } else if (ref_method != 'pcunif') {
-    ranges <- NULL
   }
   
   # Define pacs_b function
-  pacs_b <- function(b, dat, row_means, svd_dat, chol_mat, ranges,
-                     max_k, ref_method, B, reps, distance, 
+  pacs_b <- function(b, dat, max_k, ref_method, reps, distance, 
                      cluster_alg, hclust_method, p_item, p_feature, wts_item, 
                      wts_feature, pac_window, seed) {
     n <- ncol(dat)
@@ -225,10 +216,8 @@ ref_pacs <- function(dat,
   if (parallel) {
     # Execute in parallel
     null_pacs <- foreach(b = seq_len(B), .combine = rbind) %dopar%
-      pacs_b(b, dat = dat, row_means = row_means, svd_dat = svd_dat, 
-             chol_mat = chol_mat, ranges = ranges,
-             max_k = max_k, ref_method = ref_method, 
-             B = B, reps = reps, distance = distance, 
+      pacs_b(b, dat = dat, max_k = max_k, ref_method = ref_method, 
+             reps = reps, distance = distance, 
              cluster_alg = cluster_alg, hclust_method = hclust_method, 
              p_item = p_item, p_feature = p_feature, 
              wts_item = wts_item, wts_feature = wts_feature, 
@@ -236,9 +225,8 @@ ref_pacs <- function(dat,
   } else {
     # Execute in serial
     null_pacs <- t(sapply(seq_len(B), function(b) {
-      pacs_b(b, dat = dat, row_means = row_means, svd_dat = svd_dat, 
-             chol_mat = chol_mat, ranges = ranges, 
-             B = B, reps = reps, distance = distance, 
+      pacs_b(b, dat = dat, max_k = max_k, ref_method = ref_method, 
+             reps = reps, distance = distance, 
              cluster_alg = cluster_alg, hclust_method = hclust_method, 
              p_item = p_item, p_feature = p_feature, 
              wts_item = wts_item, wts_feature = wts_feature, 
