@@ -178,7 +178,8 @@ cc_test <- function(dat,
                            cluster_alg = cluster_alg, hclust_method = hclust_method, 
                            p_item = p_item, p_feature = p_feature, 
                            wts_item = wts_item, wts_feature = wts_feature, 
-                           pac_window = pac_window, seed = seed, parallel = parallel)
+                           pac_window = pac_window, logit = TRUE, 
+                           seed = seed, parallel = parallel)
   message('Finished simulating null distributions.')
 
 
@@ -199,16 +200,16 @@ cc_test <- function(dat,
 
   out <- list()
   res <- pac %>%
-    rename(PAC_observed = PAC) %>%
-    mutate(PAC_expected = colMeans2(ref_pacs_mat),
-           PAC_sim_sigma = colSds(ref_pacs_mat)) %>%
-    mutate(z.stability = (PAC_expected - PAC_observed) / PAC_sim_sigma) %>%  
-    mutate(SE = PAC_sim_sigma * sqrt(1L + 1L/B),
+    mutate(logit_PAC.obs = log(PAC / (1L - PAC)),
+           logit_PAC.exp = colMeans2(ref_pacs_mat),
+           sigma = colSds(ref_pacs_mat)) %>%
+    mutate(z.stability = (logit_PAC.exp - logit_PAC.obs) / sigma) %>%  
+    mutate(SE = sigma * sqrt(1L + 1L/B),
            p.value = pnorm(-z.stability))
   if (!is.null(p_adj)) {
     res <- res %>% mutate(adj_p.value = p.adjust(p.value, method = p_adj))
   }
-  res <- res %>% select(-PAC_sim_sigma)
+  res <- res %>% select(-PAC, -sigma)
   out[[1]] <- res
 
   # Export

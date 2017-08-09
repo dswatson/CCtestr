@@ -8,7 +8,7 @@ ref_pacs(dat, max_k = 3, ref_method = "pc_norm", B = 100, reps = 100,
   distance = "euclidean", cluster_alg = "hclust",
   hclust_method = "average", p_item = 0.8, p_feature = 1,
   wts_item = NULL, wts_feature = NULL, pac_window = c(0.1, 0.9),
-  seed = NULL, parallel = TRUE)
+  logit = TRUE, seed = NULL, parallel = TRUE)
 }
 \arguments{
 \item{dat}{Probe by sample omic data matrix. Data should be filtered and
@@ -47,6 +47,10 @@ hierarchical (\code{"hclust"}), \emph{k}-means (\code{"kmeans"}), and
 
 \item{pac_window}{Lower and upper bounds for the consensus index sub-interval
 over which to calculate the PAC. Must be on (0, 1).}
+
+\item{logit}{Logit transform PAC output? Allows for faster convergence of
+the null distribution toward normality, which aids in downstream 
+statistical testing.}
 
 \item{seed}{Optional seed for reproducibility.}
 

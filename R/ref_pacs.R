@@ -27,6 +27,9 @@
 #' @param wts_feature Optional vector of feature weights.
 #' @param pac_window Lower and upper bounds for the consensus index sub-interval
 #'   over which to calculate the PAC. Must be on (0, 1).
+#' @param logit Logit transform PAC output? Allows for faster convergence of
+#'   the null distribution toward normality, which aids in downstream 
+#'   statistical testing.
 #' @param seed Optional seed for reproducibility.
 #' @param parallel If a parallel backend is loaded and available, should the 
 #'   function use it? Highly advisable if hardware permits. 
@@ -101,6 +104,7 @@ ref_pacs <- function(dat,
                      wts_item = NULL, 
                      wts_feature = NULL, 
                      pac_window = c(0.1, 0.9), 
+                     logit = TRUE,
                      seed = NULL,
                      parallel = TRUE) {
   
@@ -209,8 +213,12 @@ ref_pacs <- function(dat,
                     wts_item = wts_item, wts_feature = wts_feature,
                     seed = seed, parallel = FALSE, check = FALSE)
     # Calculate PAC
-    pacs <- PAC(cm, pac_window)$PAC
-    return(pacs)
+    out <- PAC(cm, pac_window)$PAC
+    # Logit transform
+    if (logit) {
+      out <- log(out / (1L - out))
+    }
+    return(out)
   }
   
   if (parallel) {
