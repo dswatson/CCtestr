@@ -87,7 +87,7 @@
 #' rp <- ref_pacs(mat, ref_method = "pc_norm")
 #'
 #' @export
-#' @importFrom matrixStats rowMeans2
+#' @importFrom matrixStats rowMeans2 rowRanges colRanges
 #' @importFrom Matrix nearPD
 #' 
 
@@ -165,12 +165,12 @@ ref_pacs <- function(dat,
     row_means <- rowMeans2(dat)
     svd_dat <- svd(t(dat - row_means))
     if (ref_method == 'pc_unif') {
-      ranges <- apply(crossprod((dat - row_means), svd_dat$v), 2L, range)
+      ranges <- colRanges(crossprod((dat - row_means), svd_dat$v))
     }
   } else if (ref_method == 'cholesky') {
     chol_mat <- chol(as.matrix(nearPD(cov(t(dat)))$mat))
   } else if (ref_method == 'range') {
-    ranges <- apply(dat, 1L, range)
+    ranges <- rowRanges(dat)
   }
   
   # Define pacs_b function
@@ -190,21 +190,15 @@ ref_pacs <- function(dat,
                           nrow = n, ncol = n, byrow = TRUE)
         t(tcrossprod(sim_dat, svd_dat$v)) + row_means
       }, 'pc_unif' = {
-        sim_dat <- matrix(runif(n^2L, min = ranges[1], max = ranges[2]),
+        sim_dat <- matrix(runif(n^2L, min = ranges[, 1], max = ranges[, 2]),
                           nrow = n, ncol = n, byrow = TRUE)
         t(tcrossprod(sim_dat, svd_dat$v)) + row_means
       }, 'cholesky' = {
         sim_dat <- matrix(rnorm(p * n), nrow = p, ncol = n)
         t(crossprod(sim_dat, chol_mat))
       }, 'range' = {
-        matrix(runif(n * p, min = ranges[1], max = ranges[2]), 
+        matrix(runif(n * p, min = ranges[, 1], max = ranges[, 2]), 
                nrow = p, ncol = n)
-      }, 'permute' = {
-        z <- matrix(nrow = p, ncol = n)
-        for (probe in seq_len(p)) {
-          z[probe, ] <- mat[probe, sample.int(n)]
-        }
-        z
       })
     # Generate consensus matrices
     cm <- consensus(z, max_k = max_k, reps = reps, distance = distance,
