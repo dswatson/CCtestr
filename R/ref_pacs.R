@@ -88,7 +88,7 @@
 #'
 #' @export
 #' @importFrom matrixStats rowMeans2 rowRanges colRanges
-#' @importFrom Matrix nearPD
+#' @importFrom corpcor cov.shrink
 #' 
 
 ref_pacs <- function(dat, 
@@ -116,6 +116,13 @@ ref_pacs <- function(dat,
     dat <- exprs(dat)
   }
   dat <- as.matrix(dat)
+  n <- ncol(dat)
+  p <- nrow(dat)
+  if (n > p && ref_method != 'cholesky') {
+    warning('Items (columns) outnumber features (rows). ',
+            'Switching to Cholesky decomposition method...')
+    ref_method <- 'cholesky'
+  }
   sample_n <- round(p_item * ncol(dat))
   if (max_k != round(max_k)) {
     stop('max_k must be an integer.')
@@ -167,8 +174,12 @@ ref_pacs <- function(dat,
     if (ref_method == 'pc_unif') {
       ranges <- colRanges(crossprod((dat - row_means), svd_dat$v))
     }
-  } else if (ref_method == 'cholesky') {
-    chol_mat <- chol(as.matrix(nearPD(cov(t(dat)))$mat))
+  } else if (ref_method == 'cholesky') { ### FUN FACT: IF N > P, THEN SAMPLE COVARIANCE MATRIX IS POSITIVE DEFINITE
+    if (n > p) {
+      chol_mat <- chol(cov(t(dat)))
+    } else {
+      chol_mat <- chol(cov.shrink(t(dat), verbose = FALSE))
+    }
   } else if (ref_method == 'range') {
     ranges <- rowRanges(dat)
   }
