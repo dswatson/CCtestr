@@ -83,7 +83,7 @@ consensus <- function(dat,
       dat <- exprs(dat)
     }
     dat <- as.matrix(dat)
-    sample_n <- round(p_item * ncol(dat))
+    sample_n <- floor(p_item * ncol(dat))
     if (max_k != round(max_k)) {
       stop('max_k must be an integer.')
     } else if (max_k > sample_n) {
@@ -121,7 +121,7 @@ consensus <- function(dat,
   # Run
   n <- ncol(dat)
   p <- nrow(dat)
-  sample_n <- round(n * p_item)
+  sample_n <- floor(n * p_item)
   if (p_feature == 1L && cluster_alg != 'kmeans') {
     dm <- as.matrix(dist_mat(dat, distance))
   }
@@ -138,7 +138,7 @@ consensus <- function(dat,
           }
           samples <- sample.int(n, sample_n, prob = wts_item)
           if (p_feature < 1L) {
-            probe_n <- round(p * p_feature)
+            probe_n <- floor(p * p_feature)
             probes <- sample.int(p, probe_n, prob = wts_feature)
             dat_i <- dat[probes, samples]
             if (cluster_alg != 'kmeans') {
@@ -186,7 +186,7 @@ consensus <- function(dat,
       samples <- sample.int(n, sample_n, prob = wts_item)
       count_mat <- adjacency(rep(1L, sample_n), samples, count_mat)
       if (p_feature < 1L) {
-        probe_n <- round(p * p_feature)
+        probe_n <- floor(p * p_feature)
         probes <- sample.int(p, probe_n, prob = wts_feature)
         dat_i <- dat[probes, samples]
         if (cluster_alg != 'kmeans') {
