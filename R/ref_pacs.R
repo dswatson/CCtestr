@@ -27,9 +27,6 @@
 #' @param wts_feature Optional vector of feature weights.
 #' @param pac_window Lower and upper bounds for the consensus index sub-interval
 #'   over which to calculate the PAC. Must be on (0, 1).
-#' @param logit Logit transform PAC output? Allows for faster convergence of
-#'   the null distribution toward normality, which aids in downstream 
-#'   statistical testing.
 #' @param seed Optional seed for reproducibility.
 #' @param parallel If a parallel backend is loaded and available, should the 
 #'   function use it? Highly advisable if hardware permits. 
@@ -46,18 +43,20 @@
 #' from a given input matrix: 
 #' 
 #' \itemize{
-#'   \item \code{"pc_norm"} simulates the principal components by taking random 
-#'     draws from a normal distribution with variance equal to the true 
+#'   \item \code{"pc_norm"} simulates principal component scores by taking 
+#'     random draws from a normal distribution with variance equal to the true 
 #'     eigenvalues. Data are subsequently back-transformed to their original 
 #'     dimensions by cross-multiplication with the true eigenvector matrix.
-#'   \item \code{"pc_unif"} simulates the principal components by taking random 
-#'     draws from a uniform distribution with ranges equal to those of the true 
-#'     principal components. Data are subsequently back-transformed to their 
+#'   \item \code{"pc_unif"} simulates principal component scores by taking 
+#'     random draws from a uniform distribution with ranges equal to those of 
+#'     the true PC score matrix. Data are subsequently back-transformed to their 
 #'     original dimensions by cross-multiplication with the true eigenvector 
 #'     matrix. 
-#'   \item \code{"cholesky"} simulates random Gaussian noise around the nearest
-#'     positive-definite approximation to \code{dat}'s feature-wise covariance 
-#'     matrix.
+#'   \item \code{"cholesky"} simulates random Gaussian noise around \code{dat}'s 
+#'     feature-wise covariance matrix. If features outnumber samples, then the
+#'     nearest positive definite approximation to the covariance matrix is 
+#'     estimated using the empirical Bayes shrinkage method described by 
+#'     Schäfer & Strimmer (2005). See \code{\link[corpcor]{cov.shrink}}.
 #'   \item \code{"range"} selects random values uniformly from each feature's 
 #'     observed range. 
 #'   \item \code{"permute"} shuffles each feature's observed values.
@@ -69,10 +68,9 @@
 #' replicates generated via \code{"pc_unif"} converge more quickly to a true 
 #' \emph{k} of 1. Both methods are fast and stable when features outnumber 
 #' samples. When samples outnumber features, \code{ref_method} defaults to 
-#' \code{"cholesky"}, which takes longer to compute, but is better suited for 
-#' such cases. \code{"range"} and \code{"permute"} are included for convenience,
-#' but are not recommended since they do not preserve feature-wise covariance,
-#' which may bias results. 
+#' \code{"cholesky"}, which is better suited for such cases. \code{"range"} 
+#' and \code{"permute"} are included for convenience, but are not recommended 
+#' since they do not preserve feature-wise covariance. 
 #' 
 #' Just as reference PAC distributions are the theoretical core of the CCtestr 
 #' approach to cluster validation, \code{ref_pacs} is the computational core 
@@ -104,7 +102,6 @@ ref_pacs <- function(dat,
                      wts_item = NULL, 
                      wts_feature = NULL, 
                      pac_window = c(0.1, 0.9), 
-                     logit = TRUE,
                      seed = NULL,
                      parallel = TRUE) {
   
@@ -130,7 +127,7 @@ ref_pacs <- function(dat,
     stop('max_k exceeds subsample size.')
   }
   if (!ref_method %in% c('pc_norm', 'pc_unif', 'cholesky', 'range', 'permute')) {
-    stop('ref_method must be one of "pc_norm", "pc_unif", "cholesky", ', 
+    stop('ref_method must be one of "pc_norm", "pc_unif", "cholesky", or ', 
          '"range", or "permute".')
   }
   if (!hclust_method %in% c('ward.D', 'ward.D2', 'single', 'complete',
@@ -210,6 +207,12 @@ ref_pacs <- function(dat,
       }, 'range' = {
         matrix(runif(n * p, min = ranges[, 1], max = ranges[, 2]), 
                nrow = p, ncol = n)
+      }, 'permute' = {
+        z <- matrix(nrow = p, ncol = n)
+        for (i in seq_len(nrow(z))) {
+          z[i, ] <- dat[i, sample.int(n)]
+        }
+        z
       })
     # Generate consensus matrices
     cm <- consensus(z, max_k = max_k, reps = reps, distance = distance,
@@ -219,10 +222,6 @@ ref_pacs <- function(dat,
                     seed = seed, parallel = FALSE, check = FALSE)
     # Calculate PAC
     out <- PAC(cm, pac_window)$PAC
-    # Logit transform
-    if (logit) {
-      out <- log(out / (1L - out))
-    }
     return(out)
   }
   
