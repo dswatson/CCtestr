@@ -151,7 +151,7 @@ cc_test <- function(dat,
   dat <- as.matrix(dat)
   n <- ncol(dat)
   p <- nrow(dat)
-  if (n > p && null && ref_method != 'cholesky') {
+  if (n > p && ref_method != 'cholesky') {
     warning('Items (columns) outnumber features (rows). ',
             'Switching to Cholesky decomposition method...')
     ref_method <- 'cholesky'
@@ -173,13 +173,13 @@ cc_test <- function(dat,
   ### PART I: GENERATE REFERENCE PAC SCORES ###
 
   message('Simulating null distributions...')
-  ref_pacs_mat <- ref_pacs(dat, max_k = max_k, ref_method = ref_method, B = B, 
-                           reps = reps, distance = distance, 
-                           cluster_alg = cluster_alg, hclust_method = hclust_method, 
-                           p_item = p_item, p_feature = p_feature, 
-                           wts_item = wts_item, wts_feature = wts_feature, 
-                           pac_window = pac_window, logit = TRUE, 
-                           seed = seed, parallel = parallel)
+  ref_loacs_mat <- null_distro(dat, max_k = max_k, ref_method = ref_method, B = B, 
+                               reps = reps, distance = distance, 
+                               cluster_alg = cluster_alg, hclust_method = hclust_method, 
+                               p_item = p_item, p_feature = p_feature, 
+                               wts_item = wts_item, wts_feature = wts_feature, 
+                               pac_window = pac_window, logit = TRUE, 
+                               seed = seed, parallel = parallel)
   message('Finished simulating null distributions.')
 
 
