@@ -174,7 +174,7 @@ ref_pacs <- function(dat,
     if (ref_method == 'pc_unif') {
       ranges <- colRanges(crossprod((dat - row_means), svd_dat$v))
     }
-  } else if (ref_method == 'cholesky') { ### FUN FACT: IF N > P, THEN SAMPLE COVARIANCE MATRIX IS POSITIVE DEFINITE
+  } else if (ref_method == 'cholesky') { 
     if (n > p) {
       chol_mat <- chol(cov(t(dat)))
     } else {
